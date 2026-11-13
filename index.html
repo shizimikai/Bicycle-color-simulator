@@ -1,0 +1,684 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
+<title>Bike Color Simulator</title>
+<style>
+:root{--bg:#16171a;--panel:#1d1f23;--line:#2e3137;--text:#e8e9ec;--muted:#9aa0a8;--accent:#ffcc00}
+*{box-sizing:border-box}
+html,body{margin:0;height:100%;overflow:hidden;background:var(--bg);color:var(--text);font-family:system-ui,-apple-system,"Hiragino Sans","Noto Sans JP",sans-serif;-webkit-user-select:none;user-select:none}
+#app{display:flex;flex-direction:column;height:100vh;height:100dvh}
+#stageWrap{position:relative;flex:1 1 auto;min-height:0;overflow:hidden}
+#stage{position:absolute;inset:0;touch-action:none;display:block}
+#toolbar{position:absolute;top:8px;left:8px;right:8px;display:flex;flex-wrap:wrap;gap:6px;pointer-events:none}
+#toolbar button{pointer-events:auto;border:1px solid rgba(0,0,0,.15);background:rgba(255,255,255,.92);color:#222;border-radius:10px;padding:7px 10px;font-size:13px;line-height:1;box-shadow:0 1px 4px rgba(0,0,0,.15);cursor:pointer}
+#toolbar button.on{background:#222;color:#fff}
+#toolbar button:disabled{opacity:.4}
+#toolbar .sep{width:6px}
+#badge{position:absolute;left:8px;bottom:8px;background:rgba(0,0,0,.65);color:#fff;font-size:12px;padding:5px 9px;border-radius:8px;pointer-events:none}
+#toast{position:absolute;left:50%;bottom:40px;transform:translateX(-50%);background:rgba(0,0,0,.8);color:#fff;padding:8px 14px;border-radius:10px;font-size:13px;opacity:0;transition:opacity .2s;pointer-events:none;white-space:nowrap}
+#toast.show{opacity:1}
+#panel{flex:0 0 42%;display:flex;flex-direction:column;background:var(--panel);border-top:1px solid var(--line);min-height:0}
+#panel.collapsed{flex:0 0 auto}
+#panel.collapsed #bodies{display:none}
+#tabs{display:flex;overflow-x:auto;border-bottom:1px solid var(--line);flex:0 0 auto}
+#tabs button{flex:1 0 auto;background:none;border:0;color:var(--muted);padding:10px 12px;font-size:13px;border-bottom:2px solid transparent;cursor:pointer}
+#tabs button.on{color:var(--text);border-bottom-color:var(--accent)}
+#bodies{flex:1;overflow-y:auto;padding:6px 14px 30px;-webkit-overflow-scrolling:touch}
+section{display:none}section.on{display:block}
+h4{margin:14px 0 4px;font-size:12px;color:var(--accent);font-weight:600;letter-spacing:.05em}
+.row{display:flex;align-items:center;gap:8px;margin:7px 0;min-height:28px}
+.row>label{flex:0 0 38%;font-size:13px;color:#cfd2d7}
+.row input[type=range]{flex:1;min-width:0;accent-color:var(--accent)}
+.row select{flex:1;min-width:0;background:#2a2d33;color:var(--text);border:1px solid var(--line);border-radius:8px;padding:6px}
+.row input[type=color]{width:44px;height:30px;border:1px solid var(--line);border-radius:8px;background:none;padding:0}
+.row input[type=checkbox]{width:20px;height:20px;accent-color:var(--accent)}
+.val{width:58px;text-align:right;font-size:12px;color:var(--muted);font-variant-numeric:tabular-nums}
+.sw{display:flex;flex-wrap:wrap;gap:4px;flex:1}
+.sw i{width:22px;height:22px;border-radius:6px;border:1px solid rgba(255,255,255,.25);cursor:pointer;display:block}
+.btns{display:flex;flex-wrap:wrap;gap:6px;margin:10px 0}
+.btn{background:#2a2d33;color:var(--text);border:1px solid var(--line);border-radius:8px;padding:8px 11px;font-size:13px;cursor:pointer}
+.btn.primary{background:var(--accent);color:#111;border-color:var(--accent);font-weight:600}
+.btn.danger{color:#ff8a80}
+.hint{font-size:12px;color:var(--muted);line-height:1.6}
+#imgList{display:flex;flex-direction:column;gap:4px;margin:6px 0}
+#imgList .it{display:flex;align-items:center;gap:8px;padding:6px 8px;border:1px solid var(--line);border-radius:8px;font-size:13px;cursor:pointer}
+#imgList .it.on{border-color:var(--accent);background:#2a2a20}
+#imgList .it span{flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.dis{opacity:.4;pointer-events:none}
+@media (min-width:900px){
+  #app{flex-direction:row}
+  #panel{flex:0 0 370px;border-top:0;border-left:1px solid var(--line);height:100%}
+  #collapse{display:none}
+}
+</style>
+</head>
+<body>
+<div id="app">
+  <div id="stageWrap">
+    <canvas id="stage"></canvas>
+    <div id="toolbar">
+      <button data-tool="select" title="選択・移動 (V)">↖ 選択</button>
+      <button data-tool="brush" title="ブラシ (B)">🖌 ブラシ</button>
+      <button data-tool="eraser" title="消しゴム (E)">◌ 消しゴム</button>
+      <button data-tool="fill" title="パーツ単色塗り (G)">▣ 塗り</button>
+      <button data-tool="picker" title="スポイト (I)">💧 スポイト</button>
+      <span class="sep"></span>
+      <button id="bUndo" title="元に戻す (Ctrl+Z)">↶</button>
+      <button id="bRedo" title="やり直し (Ctrl+Shift+Z)">↷</button>
+      <button id="bFit" title="全体表示">⤢</button>
+    </div>
+    <div id="badge"></div>
+    <div id="toast"></div>
+  </div>
+  <div id="panel">
+    <div id="tabs">
+      <button data-tab="geo" class="on">ジオメトリ</button>
+      <button data-tab="part">パーツ塗装</button>
+      <button data-tab="brush">ブラシ</button>
+      <button data-tab="img">画像</button>
+      <button data-tab="file">表示・保存</button>
+      <button id="collapse" title="パネルを畳む">▾</button>
+    </div>
+    <div id="bodies">
+      <section data-body="geo" class="on">
+        <div class="row"><label>プリセット</label><select id="preset"></select></div>
+        <div id="geoCtrls"></div>
+      </section>
+      <section data-body="part">
+        <div class="row"><label>パーツ</label><select id="partSel"></select></div>
+        <div class="row"><label>表示</label><input type="checkbox" id="pVis"></div>
+        <div class="row"><label>塗り方</label><select id="pType"><option value="solid">単色</option><option value="grad">グラデーション／ツートン</option></select></div>
+        <div class="row"><label>色1</label><input type="color" id="pC1"><div class="sw" id="pSw1"></div></div>
+        <div id="gradBox">
+          <div class="row"><label>色2</label><input type="color" id="pC2"><div class="sw" id="pSw2"></div></div>
+          <div id="gradCtrls"></div>
+          <div class="row"><label>グラデ範囲</label><select id="pRange"><option value="part">パーツごと</option><option value="group">グループ全体（つながる）</option><option value="all">自転車全体</option></select></div>
+        </div>
+        <div class="btns">
+          <button class="btn" id="pApplyGroup">同じグループに適用</button>
+          <button class="btn" id="pApplyFrame">フレーム＋フォークに適用</button>
+          <button class="btn danger" id="pClear">このパーツの手描きを消去</button>
+        </div>
+        <p class="hint">キャンバスのパーツをタップで選択。ブラシで描いた部分はパーツの形で自動的に切り抜かれます。ぼかし幅を0にするとツートンカラーになります。</p>
+      </section>
+      <section data-body="brush">
+        <div class="row"><label>色</label><input type="color" id="bColor"><div class="sw" id="bSw"></div></div>
+        <div id="brushCtrls"></div>
+        <div class="row"><label>描き始めた場所の<br>パーツ/画像に自動切替</label><input type="checkbox" id="bAuto"></div>
+        <p class="hint">オフにすると、選択中のパーツ／画像だけに描けます（はみ出しても他パーツに付かない）。2本指でズーム・移動、空いている所のドラッグでも移動できます。</p>
+      </section>
+      <section data-body="img">
+        <div class="btns"><button class="btn primary" id="iAdd">＋ 画像を追加（PNG透過OK）</button></div>
+        <div id="imgList"></div>
+        <div id="imgProps">
+          <div id="imgCtrls"></div>
+          <div class="row"><label>左右反転</label><input type="checkbox" id="iFlip"></div>
+          <div class="row"><label>表示</label><input type="checkbox" id="iVis"></div>
+          <div class="row"><label>貼り付け先</label><select id="iClip"></select></div>
+          <div class="row"><label>透明部分を保護<br>してペイント</label><input type="checkbox" id="iLock"></div>
+          <div class="btns">
+            <button class="btn" id="iUp">前面へ</button><button class="btn" id="iDown">背面へ</button>
+            <button class="btn" id="iDup">複製</button><button class="btn" id="iCenter">画面中央へ</button>
+            <button class="btn danger" id="iDel">削除</button>
+          </div>
+        </div>
+        <p class="hint">選択ツールで画像をドラッグして移動、右下の■で拡大縮小、上の●で回転。「貼り付け先」にパーツを選ぶと、そのパーツの形で切り抜かれます（ロゴやデカールに便利）。ブラシで画像にも描けます。</p>
+      </section>
+      <section data-body="file">
+        <h4>表示</h4>
+        <div class="row"><label>背景色</label><input type="color" id="oBg"></div>
+        <div class="row"><label>輪郭線</label><input type="checkbox" id="oOutline"></div>
+        <div class="row"><label>立体感（陰影）</label><input type="checkbox" id="oShade"></div>
+        <div class="row"><label>地面の影</label><input type="checkbox" id="oShadow"></div>
+        <div class="row"><label>PNGを透過背景で</label><input type="checkbox" id="oTrans"></div>
+        <h4>書き出し・保存</h4>
+        <div class="btns">
+          <button class="btn primary" id="fPng">PNG画像で書き出し</button>
+          <button class="btn" id="fSave">プロジェクト保存 (.json)</button>
+          <button class="btn" id="fLoad">プロジェクト読込</button>
+          <button class="btn danger" id="fReset">すべてリセット</button>
+        </div>
+        <p class="hint">作業内容はこのブラウザに自動保存されます（容量オーバー時はプロジェクト保存を使ってください）。.jsonには画像・手描きも含まれるので、別の端末でも続きができます。</p>
+      </section>
+    </div>
+  </div>
+</div>
+<input type="file" id="fileImg" accept="image/*" hidden>
+<input type="file" id="fileProj" accept=".json,application/json" hidden>
+<script>
+'use strict';
+// ================= math helpers =================
+const D2R=Math.PI/180, RES=2; // paint layer resolution: px per mm
+const V=(x,y)=>({x,y}), add=(a,b)=>V(a.x+b.x,a.y+b.y), sub=(a,b)=>V(a.x-b.x,a.y-b.y), mul=(a,k)=>V(a.x*k,a.y*k);
+const len=a=>Math.hypot(a.x,a.y), norm=a=>{const l=len(a)||1;return V(a.x/l,a.y/l)};
+const polar=(r,t)=>V(r*Math.cos(t),r*Math.sin(t));
+const rot=(a,deg)=>{const t=deg*D2R,c=Math.cos(t),s=Math.sin(t);return V(a.x*c-a.y*s,a.x*s+a.y*c)};
+const F=p=>V(p.x,-p.y);
+const $=s=>document.querySelector(s);
+const el=(t,c)=>{const e=document.createElement(t);if(c)e.className=c;return e};
+const mk=(w,h)=>{const c=document.createElement('canvas');c.width=Math.max(1,w|0);c.height=Math.max(1,h|0);return c};
+const cloneCanvas=c=>{const n=mk(c.width,c.height);n.getContext('2d').drawImage(c,0,0);return n};
+const union=(a,b)=>{if(!a)return {...b};if(!b)return {...a};const x=Math.min(a.x,b.x),y=Math.min(a.y,b.y);return{x,y,w:Math.max(a.x+a.w,b.x+b.w)-x,h:Math.max(a.y+a.h,b.y+b.h)-y}};
+const expand=(b,m)=>({x:b.x-m,y:b.y-m,w:b.w+2*m,h:b.h+2*m});
+function hexA(hex,a){const n=parseInt(hex.slice(1),16);return`rgba(${n>>16&255},${n>>8&255},${n&255},${a})`}
+function tubePts(a,b,wa,wb){const d=norm(sub(b,a)),n=V(-d.y,d.x);return[add(a,mul(n,wa/2)),add(b,mul(n,wb/2)),add(b,mul(n,-wb/2)),add(a,mul(n,-wa/2))]}
+function gearPts(c,r,n){const pts=[],s=2*Math.PI/n;for(let i=0;i<n;i++){const a=i*s;pts.push(add(c,polar(r+3,a)),add(c,polar(r+3,a+.38*s)),add(c,polar(r-2.5,a+.55*s)),add(c,polar(r-2.5,a+.95*s)))}return pts}
+
+// Path builder: geometry is computed with y-up (mm, BB origin), stored as y-down world coords
+class PB{
+  constructor(kind,width){this.path=new Path2D();this.kind=kind||'fill';this.width=width||0;this.rule='nonzero';this.b=[1e9,1e9,-1e9,-1e9]}
+  _p(p){const x=p.x,y=-p.y,b=this.b;if(x<b[0])b[0]=x;if(y<b[1])b[1]=y;if(x>b[2])b[2]=x;if(y>b[3])b[3]=y;return[x,y]}
+  poly(pts,close=true){pts.forEach((p,i)=>{const[x,y]=this._p(p);i?this.path.lineTo(x,y):this.path.moveTo(x,y)});if(close)this.path.closePath();return this}
+  seg(a,b){return this.poly([a,b],false)}
+  circle(c,r){this._p(V(c.x-r,c.y-r));this._p(V(c.x+r,c.y+r));this.path.moveTo(c.x+r,-c.y);this.path.arc(c.x,-c.y,r,0,Math.PI*2);this.path.closePath();return this}
+  ring(c,r1,r2){this.rule='evenodd';return this.circle(c,r1).circle(c,r2)}
+  smooth(pts){const n=pts.length,m=(a,b)=>V((a.x+b.x)/2,(a.y+b.y)/2);let[x,y]=this._p(m(pts[n-1],pts[0]));this.path.moveTo(x,y);
+    for(let i=0;i<n;i++){const[cx,cy]=this._p(pts[i]),[ex,ey]=this._p(m(pts[i],pts[(i+1)%n]));this.path.quadraticCurveTo(cx,cy,ex,ey)}this.path.closePath();return this}
+  bbox(){const e=this.kind==='stroke'?this.width/2+1:1,b=this.b;return{x:b[0]-e,y:b[1]-e,w:b[2]-b[0]+2*e,h:b[3]-b[1]+2*e}}
+}
+
+// ================= parts / presets =================
+const FRAME='#2f6fe4';
+const PART_INFO={
+  rearSpokes:['リアスポーク','wheel','#a9adb3'],rearRim:['リアリム','wheel','#2a2a2d'],rearTire:['リアタイヤ','wheel','#1c1c1e'],rearHub:['リアハブ','wheel','#8d9299'],
+  frontSpokes:['フロントスポーク','wheel','#a9adb3'],frontRim:['フロントリム','wheel','#2a2a2d'],frontTire:['フロントタイヤ','wheel','#1c1c1e'],frontHub:['フロントハブ','wheel','#8d9299'],
+  seatpost:['シートポスト','cockpit','#2a2a2d'],column:['コラムスペーサー','cockpit','#2a2a2d'],bar:['ハンドル／バーテープ','cockpit','#1c1c1e'],lever:['ブラケット','cockpit','#222224'],stem:['ステム','cockpit','#2a2a2d'],
+  cs:['チェーンステー','frame',FRAME],ss:['シートステー','frame',FRAME],st:['シートチューブ','frame',FRAME],tt:['トップチューブ','frame',FRAME],dt:['ダウンチューブ','frame',FRAME],ht:['ヘッドチューブ','frame',FRAME],bb:['BBシェル','frame',FRAME],
+  stanchion:['インナーチューブ','fork','#c9a54a'],fork:['フォーク','fork',FRAME],
+  cog:['スプロケット','drive','#9aa0a6'],chain:['チェーン','drive','#6b6f75'],ring:['チェーンリング','drive','#3a3b3f'],crank:['クランク','drive','#2a2a2d'],pedal:['ペダル','drive','#1c1c1e'],
+  saddle:['サドル','cockpit','#1c1c1e']
+};
+const GROUPS=[['frame','フレーム'],['fork','フォーク'],['wheel','ホイール'],['cockpit','コクピット'],['drive','ドライブトレイン']];
+const BASE={stack:560,reach:385,htLen:150,headAngle:73,seatAngle:73.5,ttSlope:6,csLen:408,bbDrop:70,rake:45,ssDrop:30,
+  wTT:30,wDT:42,wST:32,wHT:46,wSS:16,wCS:22,wFork:30,forkType:'rigid',
+  wheel:622,rimH:35,tire:26,spokes:24,lacing:'2',wheelType:'spoke',hub:34,
+  bar:'drop',stemLen:100,stemAngle:-6,spacer:20,saddleH:720,setback:0,ring:50,cog:15,crankLen:170,crankAngle:300};
+const PRESETS={
+  road:{...BASE},
+  aero:{...BASE,stack:550,reach:395,htLen:140,headAngle:73.3,ttSlope:5,csLen:405,bbDrop:72,ssDrop:110,wTT:38,wDT:62,wST:50,wHT:58,wSS:14,wCS:24,wFork:40,rimH:60,tire:28,spokes:20,lacing:'0',stemAngle:-12,spacer:10},
+  track:{...BASE,stack:540,reach:395,htLen:130,headAngle:74,seatAngle:74.5,ttSlope:0,csLen:390,bbDrop:60,rake:35,ssDrop:15,wTT:28,wDT:38,wST:30,wHT:40,wSS:14,wCS:20,wFork:26,rimH:45,tire:23,wheelType:'rearDisc',bar:'bullhorn',stemAngle:-17,spacer:10,ring:48,cog:16,lacing:'0'},
+  gravel:{...BASE,stack:590,reach:380,htLen:165,headAngle:71.5,ttSlope:9,csLen:425,bbDrop:72,rake:50,ssDrop:60,wTT:32,wDT:46,wHT:46,wSS:15,wFork:32,rimH:25,tire:42,spokes:28,ring:40,cog:22,lacing:'3'},
+  mtb:{...BASE,stack:625,reach:440,htLen:110,headAngle:66,seatAngle:75,ttSlope:12,csLen:435,bbDrop:60,rake:44,ssDrop:80,wTT:38,wDT:55,wST:34,wHT:52,wSS:18,wCS:24,wFork:34,forkType:'sus',rimH:22,tire:58,spokes:32,lacing:'3',bar:'riser',stemLen:50,stemAngle:0,spacer:15,saddleH:740,ring:32,cog:28,hub:40},
+  minivelo:{...BASE,stack:470,reach:370,htLen:110,headAngle:73,seatAngle:73,ttSlope:0,csLen:400,bbDrop:-40,rake:40,ssDrop:30,wTT:30,wDT:38,wST:30,wHT:40,wSS:14,wCS:20,wFork:26,wheel:451,rimH:20,tire:28,spokes:20,lacing:'0',bar:'flat',stemLen:90,stemAngle:10,spacer:60,saddleH:700,ring:52,cog:13}
+};
+const PRESET_NAMES={road:'ロード（オールラウンド）',aero:'エアロロード',track:'トラック／ピスト',gravel:'グラベル',mtb:'MTB（29erハードテール）',minivelo:'ミニベロ'};
+const PARAMS=[
+  {g:'フレーム寸法'},
+  {k:'stack',l:'スタック',min:420,max:720},{k:'reach',l:'リーチ',min:320,max:520},
+  {k:'htLen',l:'ヘッドチューブ長',min:60,max:260},{k:'headAngle',l:'ヘッド角',min:62,max:76,step:.5,u:'°'},
+  {k:'seatAngle',l:'シート角',min:68,max:80,step:.5,u:'°'},{k:'ttSlope',l:'トップチューブ傾斜',min:-4,max:22,step:.5,u:'°'},
+  {k:'csLen',l:'チェーンステー長',min:360,max:480},{k:'bbDrop',l:'BBドロップ',min:-90,max:95},
+  {k:'rake',l:'フォークオフセット',min:15,max:70},{k:'ssDrop',l:'シートステー位置（下げ）',min:0,max:220},
+  {k:'forkType',l:'フォーク',opts:[['rigid','リジッド'],['sus','サスペンション']]},
+  {g:'チューブの太さ（側面から見た幅）'},
+  {k:'wTT',l:'トップチューブ',min:14,max:75},{k:'wDT',l:'ダウンチューブ',min:18,max:95},{k:'wST',l:'シートチューブ',min:18,max:85},
+  {k:'wHT',l:'ヘッドチューブ',min:28,max:85},{k:'wSS',l:'シートステー',min:8,max:45},{k:'wCS',l:'チェーンステー',min:10,max:50},{k:'wFork',l:'フォークブレード',min:14,max:65},
+  {g:'ホイール'},
+  {k:'wheel',l:'ホイール径',num:true,opts:[['622','700C / 29er'],['584','650B / 27.5"'],['559','26"'],['451','20" (451)'],['406','20" (406)'],['349','16" (349)']]},
+  {k:'wheelType',l:'タイプ',opts:[['spoke','スポーク'],['rearDisc','リアのみディスク'],['disc','前後ディスク']]},
+  {k:'rimH',l:'リムハイト（高さ）',min:8,max:100},{k:'tire',l:'タイヤ幅',min:18,max:70},
+  {k:'spokes',l:'スポーク本数',min:8,max:40,step:2,u:'本'},
+  {k:'lacing',l:'スポーク組み',opts:[['0','ラジアル'],['1','1クロス'],['2','2クロス'],['3','3クロス']]},
+  {k:'hub',l:'ハブ径',min:20,max:70},
+  {g:'コクピット'},
+  {k:'bar',l:'ハンドル',opts:[['drop','ドロップ'],['bullhorn','ブルホーン'],['flat','フラット'],['riser','ライザー']]},
+  {k:'stemLen',l:'ステム長',min:30,max:150},{k:'stemAngle',l:'ステム角度',min:-35,max:40,u:'°'},
+  {k:'spacer',l:'コラムスペーサー',min:0,max:120},{k:'saddleH',l:'サドル高（BBから）',min:480,max:900},{k:'setback',l:'サドル前後',min:-50,max:50},
+  {g:'ドライブトレイン'},
+  {k:'ring',l:'チェーンリング',min:26,max:62,u:'T'},{k:'cog',l:'リアコグ',min:9,max:52,u:'T'},
+  {k:'crankLen',l:'クランク長',min:140,max:185},{k:'crankAngle',l:'クランク角度',min:0,max:359,u:'°'}
+];
+
+// ================= geometry =================
+function build(P){
+  const out=[];
+  const part=(id,pb,extra)=>out.push(Object.assign({id,group:PART_INFO[id][1],path:pb.path,bbox:pb.bbox(),kind:pb.kind,width:pb.width,rule:pb.rule},extra||{}));
+  const axis=(a,b,w)=>({axis:{a:F(a),b:F(b),w}});
+  const R=P.wheel/2, rimO=R+6, tireO=R+Math.max(P.tire,8), rimI=Math.max(P.hub/2+8,rimO-P.rimH);
+  const ha=P.headAngle*D2R, sa=P.seatAngle*D2R, sl=P.ttSlope*D2R;
+  const BB=V(0,0), ay=P.bbDrop;
+  const RA=V(-Math.sqrt(Math.max(P.csLen*P.csLen-ay*ay,1e4)),ay);
+  const hd=V(Math.cos(ha),-Math.sin(ha)), up=V(-hd.x,-hd.y), fw=V(Math.sin(ha),Math.cos(ha));
+  const HTt=V(P.reach,P.stack), HTb=add(HTt,mul(hd,P.htLen));
+  const t=(HTb.y+P.rake*Math.cos(ha)-ay)/Math.sin(ha);
+  const FA=add(add(HTb,mul(hd,t)),mul(fw,P.rake));
+  const sd=V(-Math.cos(sa),Math.sin(sa));
+  const H1=add(HTt,mul(hd,P.wTT/2+8));
+  const td=V(-Math.cos(sl),-Math.sin(sl));
+  const det=-td.x*sd.y+sd.x*td.y;
+  const v=(-td.x*H1.y+td.y*H1.x)/det;
+  const STj=mul(sd,v), STt=mul(sd,v+P.wTT/2+18), SSj=mul(sd,Math.max(60,v-P.ssDrop));
+  const D1=add(HTb,mul(up,P.wDT*.3+6));
+  const ringR=P.ring*12.7/(2*Math.PI), cogR=P.cog*12.7/(2*Math.PI);
+
+  // wheels
+  const wheel=(pre,C,disc)=>{
+    if(!disc){const sp=new PB('stroke',1.8),n=P.spokes,k=+P.lacing,hr=P.hub/2*.85;
+      for(let i=0;i<n;i++){const th=i*2*Math.PI/n+.13,off=(i%2?1:-1)*k*4*Math.PI/n;sp.seg(add(C,polar(hr,th)),add(C,polar(rimI+1,th+off)))}
+      part(pre+'Spokes',sp)}
+    const rim=new PB();disc?rim.circle(C,rimO):rim.ring(C,rimO,rimI);
+    part(pre+'Rim',rim,{radial:{c:F(C),r0:disc?P.hub/2:rimI,r1:rimO}});
+    part(pre+'Tire',new PB().ring(C,tireO,rimO-1),{radial:{c:F(C),r0:rimO-1,r1:tireO}});
+    part(pre+'Hub',new PB().circle(C,P.hub/2),{radial:{c:F(C),r0:0,r1:P.hub/2}});
+  };
+  wheel('rear',RA,P.wheelType!=='spoke');
+  wheel('front',FA,P.wheelType==='disc');
+
+  // seatpost / cockpit (behind frame)
+  const SC=mul(sd,P.saddleH-40);
+  part('seatpost',new PB().poly(tubePts(mul(sd,v-20),SC,27,27)).circle(SC,13),axis(STj,SC,27));
+  const cw=Math.max(30,P.wHT*.68);
+  const colTop=add(HTt,mul(up,P.spacer+40));
+  part('column',new PB().poly(tubePts(HTt,colTop,cw,cw)),axis(HTt,colTop,cw));
+  const S0=add(HTt,mul(up,P.spacer+20)), sdir=rot(fw,P.stemAngle), E=add(S0,mul(sdir,P.stemLen));
+  const BARS={drop:[[0,0],[45,2],[75,-2],[92,-22],[98,-55],[92,-95],[70,-122],[38,-130],[12,-124]],
+    bullhorn:[[0,0],[50,0],[105,8],[145,28],[160,46]],flat:[[4,0],[-32,2]],riser:[[0,0],[-12,18],[-35,30],[-58,32]]};
+  const bw=P.bar==='drop'||P.bar==='bullhorn'?24:32;
+  part('bar',new PB('stroke',bw).poly((BARS[P.bar]||BARS.drop).map(o=>V(E.x+o[0],E.y+o[1])),false));
+  if(P.bar==='drop'){const L=[[76,-4],[94,8],[116,4],[124,-12],[110,-38],[102,-78],[95,-82],[93,-42],[86,-22]];
+    part('lever',new PB().smooth(L.map(o=>V(E.x+o[0],E.y+o[1]))))}
+  part('stem',new PB().poly(tubePts(add(S0,mul(up,-20)),add(S0,mul(up,20)),cw+8,cw+8)).poly(tubePts(S0,E,36,30)).circle(E,19),axis(S0,E,36));
+
+  // frame
+  part('cs',new PB().poly(tubePts(RA,BB,P.wCS*.65,P.wCS)).circle(RA,13),axis(RA,BB,P.wCS));
+  const ssEnd=add(SSj,mul(norm(sub(SSj,RA)),P.wST*.3));
+  part('ss',new PB().poly(tubePts(RA,ssEnd,P.wSS*.7,P.wSS)),axis(RA,ssEnd,P.wSS));
+  part('st',new PB().poly(tubePts(BB,STt,P.wST,P.wST)),axis(BB,STt,P.wST));
+  const ttEnd=add(STj,mul(td,P.wST*.35));
+  part('tt',new PB().poly(tubePts(H1,ttEnd,P.wTT,P.wTT*.92)),axis(H1,ttEnd,P.wTT));
+  part('dt',new PB().poly(tubePts(BB,D1,P.wDT*.95,P.wDT)),axis(BB,D1,P.wDT));
+  part('ht',new PB().poly(tubePts(add(HTt,mul(up,4)),add(HTb,mul(hd,4)),P.wHT*.9,P.wHT)),axis(HTt,HTb,P.wHT));
+  part('bb',new PB().circle(BB,22),{radial:{c:F(BB),r0:0,r1:22}});
+  // fork
+  const fl=len(sub(FA,HTb)), fd=norm(sub(FA,HTb));
+  if(P.forkType==='sus'){
+    const sEnd=add(HTb,mul(fd,fl*.6));
+    part('stanchion',new PB().poly(tubePts(HTb,sEnd,P.wFork*.8,P.wFork*.8)),axis(HTb,sEnd,P.wFork*.8));
+    part('fork',new PB().poly(tubePts(add(HTb,mul(hd,-4)),add(HTb,mul(hd,30)),P.wHT*1.25,P.wFork*1.25)).poly(tubePts(add(HTb,mul(fd,fl*.45)),FA,P.wFork*1.15,P.wFork*.95)).circle(FA,14),axis(HTb,FA,P.wFork*1.15));
+  }else{
+    part('fork',new PB().poly(tubePts(HTb,FA,P.wFork,P.wFork*.55)).poly(tubePts(add(HTb,mul(hd,-2)),add(HTb,mul(hd,22)),P.wHT*1.02,P.wFork*1.05)).circle(FA,9),axis(HTb,FA,P.wFork));
+  }
+  // drivetrain
+  const cog=new PB().poly(gearPts(RA,cogR+1,P.cog));cog.circle(RA,7);cog.rule='evenodd';part('cog',cog);
+  {const d=len(sub(RA,BB)),ph=Math.atan2(RA.y,RA.x),th=Math.acos(Math.max(-1,Math.min(1,(ringR-cogR)/d))),pts=[];
+    const arc=(c,r,a0,a1)=>{const n=Math.max(6,Math.ceil(Math.abs(a1-a0)*r/6));for(let i=0;i<=n;i++)pts.push(add(c,polar(r,a0+(a1-a0)*i/n)))};
+    arc(RA,cogR,ph+th,ph-th);arc(BB,ringR,ph-th,ph+th-2*Math.PI);part('chain',new PB('stroke',7).poly(pts,true))}
+  const rg=new PB().poly(gearPts(BB,ringR+1,P.ring));rg.circle(BB,Math.max(20,ringR-16));rg.rule='evenodd';part('ring',rg);
+  const ca=P.crankAngle*D2R, PA=polar(P.crankLen,ca), cr=new PB();
+  for(let k=0;k<4;k++)cr.poly(tubePts(BB,polar(Math.max(24,ringR-10),ca+(45+90*k)*D2R),16,12));
+  cr.poly(tubePts(BB,PA,34,22)).circle(BB,20).circle(PA,12);part('crank',cr,axis(BB,PA,34));
+  part('pedal',new PB().smooth([[-50,-6],[50,-6],[46,10],[-42,13]].map(o=>V(PA.x+o[0],PA.y+o[1]))));
+  // saddle
+  const sb=add(SC,V(P.setback-10,0)), sp=new PB();
+  sp.smooth([[-128,30],[-122,50],[-70,53],[0,45],[80,39],[150,34],[162,28],[150,21],[60,21],[-20,23],[-100,21],[-126,21]].map(o=>V(sb.x+o[0],sb.y+o[1])));
+  sp.poly([[-92,24],[-58,6],[58,6],[100,24],[94,26],[56,11],[-56,11],[-86,26]].map(o=>V(sb.x+o[0],sb.y+o[1])));
+  part('saddle',sp);
+  return{parts:out,RA:F(RA),FA:F(FA),ground:-(ay-tireO),tireO};
+}
+
+// ================= state =================
+let S, parts=[], partMap={}, G=null, groupBox={}, allBox=null, lastPart='dt', imgSeq=0, stroke=null;
+function freshState(){return{P:{...PRESETS.road},preset:'road',styles:{},layers:{},images:[],sel:null,tool:'select',
+  brush:{color:'#ff3b30',size:12,opacity:1,hard:100,auto:true},opts:{bg:'#e9eaec',outline:true,shade:true,shadow:true,transparent:false},view:{s:.4,ox:0,oy:0}}}
+function ensureStyles(){for(const id in PART_INFO)if(!S.styles[id])S.styles[id]={type:'solid',c1:PART_INFO[id][2],c2:'#ffffff',angle:0,mid:50,soft:100,range:'part',hidden:false}}
+function rebuild(){G=build(S.P);parts=G.parts;partMap={};groupBox={};allBox=null;
+  for(const p of parts){partMap[p.id]=p;groupBox[p.group]=union(groupBox[p.group],p.bbox);allBox=union(allBox,p.bbox)}}
+const getImg=id=>S.images.find(i=>i.id===id);
+
+// ================= undo (copy-on-write rasters) =================
+const undoStack=[],redoStack=[];
+function snap(){return{P:{...S.P},preset:S.preset,styles:JSON.parse(JSON.stringify(S.styles)),layers:{...S.layers},images:S.images.map(o=>({...o})),sel:S.sel?{...S.sel}:null}}
+function pushUndo(){undoStack.push(snap());if(undoStack.length>30)undoStack.shift();redoStack.length=0;updUndo()}
+function restore(m){S.P={...m.P};S.preset=m.preset;S.styles=JSON.parse(JSON.stringify(m.styles));S.layers={...m.layers};S.images=m.images.map(o=>({...o}));S.sel=m.sel;
+  rebuild();syncAll();requestRender();autosave()}
+function undo(){if(!undoStack.length)return;redoStack.push(snap());restore(undoStack.pop());updUndo()}
+function redo(){if(!redoStack.length)return;undoStack.push(snap());restore(redoStack.pop());updUndo()}
+function updUndo(){$('#bUndo').disabled=!undoStack.length;$('#bRedo').disabled=!redoStack.length}
+
+// ================= rendering =================
+const wrap=$('#stageWrap'), stage=$('#stage'), ctx=stage.getContext('2d');
+const tmp=mk(1,1), tctx=tmp.getContext('2d'), hit=mk(1,1), hctx=hit.getContext('2d'), itmp=mk(1,1), itx=itmp.getContext('2d');
+let dpr=1,W=0,H=0;
+function resize(){const r=wrap.getBoundingClientRect();dpr=Math.min(2,window.devicePixelRatio||1);W=r.width;H=r.height;
+  for(const c of[stage,tmp]){c.width=Math.round(W*dpr);c.height=Math.round(H*dpr)}hit.width=Math.max(1,W|0);hit.height=Math.max(1,H|0);
+  stage.style.width=W+'px';stage.style.height=H+'px';requestRender()}
+let rq=false;function requestRender(){if(!rq){rq=true;requestAnimationFrame(()=>{rq=false;render()})}}
+function render(){const vt={a:S.view.s*dpr,e:S.view.ox*dpr,f:S.view.oy*dpr,k:dpr};renderScene(ctx,tctx,vt,stage.width,stage.height,false);drawOverlay(vt);updBadge()}
+
+function makeFill(c,p,st){
+  if(st.type!=='grad')return st.c1;
+  let b=p.bbox;if(st.range==='group')b=groupBox[p.group];else if(st.range==='all')b=allBox;
+  const a=st.angle*D2R,dx=Math.cos(a),dy=Math.sin(a),cx=b.x+b.w/2,cy=b.y+b.h/2,L=(Math.abs(b.w*dx)+Math.abs(b.h*dy))/2||1;
+  const g=c.createLinearGradient(cx-dx*L,cy-dy*L,cx+dx*L,cy+dy*L);
+  const m=st.mid/100,sw=st.soft/200,s0=Math.max(0,Math.min(1,m-sw)),s1=Math.max(0,Math.min(1,m+sw));
+  g.addColorStop(s0,st.c1);g.addColorStop(s1,st.c2);return g}
+function shade(c,p){const b=p.bbox;
+  if(p.axis){const{a,b:bb,w}=p.axis,d=norm(sub(bb,a)),n=V(-d.y,d.x);
+    const g=c.createLinearGradient(a.x+n.x*w/2,a.y+n.y*w/2,a.x-n.x*w/2,a.y-n.y*w/2);
+    g.addColorStop(0,'rgba(0,0,0,.30)');g.addColorStop(.22,'rgba(255,255,255,.26)');g.addColorStop(.42,'rgba(255,255,255,0)');g.addColorStop(.8,'rgba(0,0,0,.10)');g.addColorStop(1,'rgba(0,0,0,.32)');
+    c.fillStyle=g;c.fillRect(b.x,b.y,b.w,b.h)}
+  else if(p.radial){const{c:o,r0,r1}=p.radial,g=c.createRadialGradient(o.x,o.y,r0,o.x,o.y,r1);
+    g.addColorStop(0,'rgba(0,0,0,.22)');g.addColorStop(.35,'rgba(255,255,255,.14)');g.addColorStop(.6,'rgba(255,255,255,0)');g.addColorStop(1,'rgba(0,0,0,.25)');
+    c.fillStyle=g;c.fillRect(b.x,b.y,b.w,b.h)}}
+function maskPath(c,p){if(p.kind==='fill'){c.fill(p.path,p.rule)}else{c.lineWidth=p.width;c.lineCap='round';c.lineJoin='round';c.stroke(p.path)}}
+function drawImg(c,im){
+  if(im.hidden)return;let src=im.canvas;
+  if(stroke&&stroke.t.type==='img'&&stroke.t.id===im.id&&!stroke.erase){
+    if(itmp.width!==im.canvas.width||itmp.height!==im.canvas.height){itmp.width=im.canvas.width;itmp.height=im.canvas.height}
+    itx.globalCompositeOperation='source-over';itx.globalAlpha=1;itx.clearRect(0,0,itmp.width,itmp.height);itx.drawImage(im.canvas,0,0);
+    itx.globalCompositeOperation=im.lock?'source-atop':'source-over';itx.globalAlpha=stroke.opacity;itx.drawImage(stroke.buf,0,0);
+    itx.globalAlpha=1;itx.globalCompositeOperation='source-over';src=itmp}
+  c.save();c.globalAlpha*=im.opacity;c.translate(im.x,im.y);c.rotate(im.rot*D2R);c.scale(im.scale*(im.flip?-1:1),im.scale);c.drawImage(src,-im.w/2,-im.h/2);c.restore()}
+function drawPart(cx,tx,vt,cw,ch,p){
+  const st=S.styles[p.id];if(!st||st.hidden)return;
+  const b=p.bbox,olw=1.2*vt.k/vt.a;
+  const x0=Math.max(0,Math.floor(b.x*vt.a+vt.e)-3),y0=Math.max(0,Math.floor(b.y*vt.a+vt.f)-3);
+  const x1=Math.min(cw,Math.ceil((b.x+b.w)*vt.a+vt.e)+3),y1=Math.min(ch,Math.ceil((b.y+b.h)*vt.a+vt.f)+3);
+  if(x1<=x0||y1<=y0)return;const w=x1-x0,h=y1-y0;
+  if(S.opts.outline&&p.kind==='stroke'){cx.save();cx.strokeStyle='rgba(0,0,0,.55)';cx.lineWidth=p.width+2*olw;cx.lineCap='round';cx.lineJoin='round';cx.stroke(p.path);cx.restore()}
+  tx.setTransform(1,0,0,1,0,0);tx.globalCompositeOperation='source-over';tx.globalAlpha=1;tx.clearRect(x0,y0,w,h);
+  tx.save();tx.beginPath();tx.rect(x0,y0,w,h);tx.clip();
+  tx.setTransform(vt.a,0,0,vt.a,vt.e,vt.f);
+  tx.fillStyle='#fff';tx.strokeStyle='#fff';maskPath(tx,p);
+  tx.globalCompositeOperation='source-in';tx.fillStyle=makeFill(tx,p,st);tx.fillRect(b.x-2,b.y-2,b.w+4,b.h+4);
+  tx.globalCompositeOperation='source-atop';
+  const L=S.layers[p.id];
+  if(L)tx.drawImage(L.canvas,L.x0,L.y0,L.w,L.h);
+  if(L&&stroke&&!stroke.erase&&stroke.t.type==='part'&&stroke.t.id===p.id){tx.globalAlpha=stroke.opacity;tx.drawImage(stroke.buf,L.x0,L.y0,L.w,L.h);tx.globalAlpha=1}
+  for(const im of S.images)if(im.clip===p.id)drawImg(tx,im);
+  if(S.opts.shade)shade(tx,p);
+  tx.restore();
+  cx.save();cx.setTransform(1,0,0,1,0,0);cx.drawImage(tx.canvas,x0,y0,w,h,x0,y0,w,h);cx.restore();
+  if(S.opts.outline&&p.kind==='fill'){cx.save();cx.lineWidth=olw;cx.strokeStyle='rgba(0,0,0,.55)';cx.stroke(p.path);cx.restore()}
+}
+function renderScene(cx,tx,vt,cw,ch,exporting){
+  cx.setTransform(1,0,0,1,0,0);cx.globalAlpha=1;cx.globalCompositeOperation='source-over';cx.clearRect(0,0,cw,ch);
+  if(!(exporting&&S.opts.transparent)){cx.fillStyle=S.opts.bg;cx.fillRect(0,0,cw,ch)}
+  cx.setTransform(vt.a,0,0,vt.a,vt.e,vt.f);
+  if(S.opts.shadow){const x=(G.RA.x+G.FA.x)/2,rx=(G.FA.x-G.RA.x)/2+G.tireO*.9;cx.save();cx.translate(x,G.ground);cx.scale(1,22/rx);
+    const g=cx.createRadialGradient(0,0,0,0,0,rx);g.addColorStop(0,'rgba(0,0,0,.28)');g.addColorStop(1,'rgba(0,0,0,0)');cx.fillStyle=g;cx.beginPath();cx.arc(0,0,rx,0,7);cx.fill();cx.restore()}
+  for(const p of parts)drawPart(cx,tx,vt,cw,ch,p);
+  for(const im of S.images)if(!im.clip||!partMap[im.clip])drawImg(cx,im);
+}
+// screen <-> world (CSS px)
+const w2s=p=>V(p.x*S.view.s+S.view.ox,p.y*S.view.s+S.view.oy), s2w=p=>V((p.x-S.view.ox)/S.view.s,(p.y-S.view.oy)/S.view.s);
+function imgToWorld(im,lx,ly){const px=lx*im.scale*(im.flip?-1:1),py=ly*im.scale,r=im.rot*D2R,c=Math.cos(r),s=Math.sin(r);return V(im.x+px*c-py*s,im.y+px*s+py*c)}
+function imgLocal(im,w){const dx=w.x-im.x,dy=w.y-im.y,r=im.rot*D2R,c=Math.cos(r),s=Math.sin(r);let lx=(dx*c+dy*s)/im.scale,ly=(-dx*s+dy*c)/im.scale;if(im.flip)lx=-lx;return V(lx+im.w/2,ly+im.h/2)}
+function handles(im){const c=w2s(V(im.x,im.y)),top=w2s(imgToWorld(im,0,-im.h/2));let d=sub(top,c);d=len(d)<1?V(0,-1):norm(d);
+  return{c,scale:w2s(imgToWorld(im,im.w/2,im.h/2)),rot:add(top,mul(d,30)),top}}
+function drawOverlay(vt){const sel=S.sel;if(!sel)return;ctx.save();
+  if(sel.type==='part'){const p=partMap[sel.id];if(p){ctx.setTransform(vt.a,0,0,vt.a,vt.e,vt.f);const px=vt.k/vt.a;
+    ctx.lineWidth=3*px;ctx.strokeStyle='rgba(0,0,0,.6)';ctx.stroke(p.path);ctx.lineWidth=2*px;ctx.setLineDash([6*px,4*px]);ctx.strokeStyle='#ffcc00';ctx.stroke(p.path)}}
+  else{const im=getImg(sel.id);if(im){ctx.setTransform(dpr,0,0,dpr,0,0);
+    const cs=[[-1,-1],[1,-1],[1,1],[-1,1]].map(([a,b])=>w2s(imgToWorld(im,a*im.w/2,b*im.h/2))),h=handles(im);
+    ctx.beginPath();cs.forEach((p,i)=>i?ctx.lineTo(p.x,p.y):ctx.moveTo(p.x,p.y));ctx.closePath();
+    ctx.lineWidth=3;ctx.strokeStyle='rgba(0,0,0,.6)';ctx.stroke();ctx.lineWidth=1.5;ctx.setLineDash([6,4]);ctx.strokeStyle='#ffcc00';ctx.stroke();ctx.setLineDash([]);
+    ctx.beginPath();ctx.moveTo(h.top.x,h.top.y);ctx.lineTo(h.rot.x,h.rot.y);ctx.stroke();
+    ctx.fillStyle='#ffcc00';ctx.strokeStyle='#222';ctx.lineWidth=1.5;
+    ctx.beginPath();ctx.arc(h.rot.x,h.rot.y,8,0,7);ctx.fill();ctx.stroke();
+    ctx.beginPath();ctx.rect(h.scale.x-7,h.scale.y-7,14,14);ctx.fill();ctx.stroke()}}
+  ctx.restore()}
+function updBadge(){let t='未選択';if(S.sel){if(S.sel.type==='part'&&partMap[S.sel.id])t=PART_INFO[S.sel.id][0];else if(S.sel.type==='img'){const im=getImg(S.sel.id);if(im)t='画像: '+im.name}}
+  $('#badge').textContent='対象: '+t}
+function fitView(){if(!allBox||!W)return;const b=expand(allBox,30),top=W<600?92:56,avH=Math.max(50,H-top-10);
+  const s=Math.min((W-20)/b.w,avH/b.h);S.view.s=s;S.view.ox=(W-b.w*s)/2-b.x*s;S.view.oy=top+(avH-b.h*s)/2-b.y*s;requestRender()}
+
+// ================= hit testing =================
+function hitImg(im,w){if(im.hidden)return false;const l=imgLocal(im,w);if(l.x<0||l.y<0||l.x>=im.w||l.y>=im.h)return false;
+  return im.canvas.getContext('2d').getImageData(l.x|0,l.y|0,1,1).data[3]>10}
+function hitTest(sp){const w=s2w(sp);
+  for(let i=S.images.length-1;i>=0;i--){const im=S.images[i];if(im.clip&&partMap[im.clip])continue;if(hitImg(im,w))return{type:'img',id:im.id}}
+  hctx.setTransform(S.view.s,0,0,S.view.s,S.view.ox,S.view.oy);
+  for(let i=parts.length-1;i>=0;i--){const p=parts[i];if(S.styles[p.id].hidden)continue;let ok;
+    if(p.kind==='fill')ok=hctx.isPointInPath(p.path,sp.x,sp.y,p.rule);else{hctx.lineWidth=p.width+10/S.view.s;ok=hctx.isPointInStroke(p.path,sp.x,sp.y)}
+    if(ok){for(let j=S.images.length-1;j>=0;j--){const im=S.images[j];if(im.clip===p.id&&hitImg(im,w))return{type:'img',id:im.id}}return{type:'part',id:p.id}}}
+  return null}
+
+// ================= painting =================
+function ensureLayer(id){const p=partMap[id],b=expand(p.bbox,20),L=S.layers[id];
+  if(L&&L.x0<=b.x&&L.y0<=b.y&&L.x0+L.w>=b.x+b.w&&L.y0+L.h>=b.y+b.h){S.layers[id]={...L,canvas:cloneCanvas(L.canvas)};return}
+  const nb=L?union(b,{x:L.x0,y:L.y0,w:L.w,h:L.h}):b,c=mk(Math.ceil(nb.w*RES),Math.ceil(nb.h*RES));
+  if(L)c.getContext('2d').drawImage(L.canvas,(L.x0-nb.x)*RES,(L.y0-nb.y)*RES);
+  S.layers[id]={canvas:c,x0:nb.x,y0:nb.y,w:c.width/RES,h:c.height/RES}}
+function startStroke(t,wp){
+  pushUndo();let info;
+  if(t.type==='part'){ensureLayer(t.id);const L=S.layers[t.id];info={canvas:L.canvas,k:RES,toPx:w=>V((w.x-L.x0)*RES,(w.y-L.y0)*RES)}}
+  else{const im=getImg(t.id);im.canvas=cloneCanvas(im.canvas);info={canvas:im.canvas,k:1/im.scale,toPx:w=>imgLocal(im,w)}}
+  const erase=S.tool==='eraser';
+  stroke={t,info,erase,buf:erase?null:mk(info.canvas.width,info.canvas.height),opacity:S.brush.opacity,size:Math.max(.5,S.brush.size*info.k),color:S.brush.color,hard:S.brush.hard,last:info.toPx(wp)};
+  dab(stroke.last,stroke.last,true);requestRender()}
+function dab(a,b,first){const st=stroke,c=(st.erase?st.info.canvas:st.buf).getContext('2d');c.save();
+  if(st.erase){c.globalCompositeOperation='destination-out';c.globalAlpha=st.opacity}
+  const col=st.erase?'#000000':st.color;
+  if(st.hard>=98){c.strokeStyle=c.fillStyle=col;c.lineWidth=st.size;c.lineCap='round';c.lineJoin='round';
+    if(first){c.beginPath();c.arc(a.x,a.y,st.size/2,0,7);c.fill()}else{c.beginPath();c.moveTo(a.x,a.y);c.lineTo(b.x,b.y);c.stroke()}}
+  else{const r=st.size/2,step=Math.max(.5,r*.2),d=Math.hypot(b.x-a.x,b.y-a.y),n=Math.max(1,Math.ceil(d/step));
+    for(let i=first?0:1;i<=n;i++){const x=a.x+(b.x-a.x)*i/n,y=a.y+(b.y-a.y)*i/n,g=c.createRadialGradient(x,y,0,x,y,r);
+      g.addColorStop(0,hexA(col,st.erase?.35:.5));g.addColorStop(Math.min(.97,st.hard/100),hexA(col,st.erase?.35:.5));g.addColorStop(1,hexA(col,0));
+      c.fillStyle=g;c.beginPath();c.arc(x,y,r,0,7);c.fill()}}
+  c.restore()}
+function strokeTo(wp){const p=stroke.info.toPx(wp);if(Math.hypot(p.x-stroke.last.x,p.y-stroke.last.y)<.6)return;dab(stroke.last,p,false);stroke.last=p}
+function endStroke(){const st=stroke;if(!st)return;
+  if(!st.erase){const c=st.info.canvas.getContext('2d'),im=st.t.type==='img'?getImg(st.t.id):null;c.save();c.globalAlpha=st.opacity;
+    c.globalCompositeOperation=im&&im.lock?'source-atop':'source-over';c.drawImage(st.buf,0,0);c.restore()}
+  stroke=null;requestRender();autosave()}
+
+// ================= interaction =================
+const ptrs=new Map();let drag=null,pinch=null;
+function setSel(sel){S.sel=sel;if(sel&&sel.type==='part')lastPart=sel.id;
+  const cur=document.querySelector('#tabs .on')?.dataset.tab;
+  if(sel&&sel.type==='img'&&cur==='part')showTab('img');if(sel&&sel.type==='part'&&cur==='img')showTab('part');
+  syncPart();syncImg();requestRender()}
+function pos(e){const r=stage.getBoundingClientRect();return V(e.clientX-r.left,e.clientY-r.top)}
+stage.addEventListener('pointerdown',e=>{
+  stage.setPointerCapture(e.pointerId);const sp=pos(e);ptrs.set(e.pointerId,sp);
+  if(ptrs.size===2){if(drag&&drag.type==='stroke'){stroke=null;const m=undoStack.pop();if(m)restore(m);updUndo()}drag=null;
+    const[a,b]=[...ptrs.values()];pinch={d:len(sub(a,b))||1,m:mul(add(a,b),.5),s:S.view.s,ox:S.view.ox,oy:S.view.oy};return}
+  if(ptrs.size>2)return;
+  const tool=S.tool;
+  if(tool==='select'){
+    if(S.sel&&S.sel.type==='img'){const im=getImg(S.sel.id);if(im){const h=handles(im);
+      if(len(sub(sp,h.rot))<22){pushUndo();drag={type:'rotate',im,start:sp,c:h.c,r0:im.rot};return}
+      if(len(sub(sp,h.scale))<22){pushUndo();drag={type:'scale',im,start:sp,c:h.c,s0:im.scale};return}}}
+    const hit=hitTest(sp);
+    if(hit&&hit.type==='img'){setSel(hit);pushUndo();drag={type:'move',im:getImg(hit.id),last:s2w(sp),moved:false};return}
+    drag={type:'pan',last:sp,start:sp,moved:false,tap:hit};return}
+  if(tool==='brush'||tool==='eraser'){
+    let t=S.sel;if(S.brush.auto){const h=hitTest(sp);if(h){t=h;if(!S.sel||S.sel.id!==h.id)setSel(h)}else t=null}
+    if(t&&t.type==='part'&&!partMap[t.id])t=null;if(t&&t.type==='img'&&!getImg(t.id))t=null;
+    if(!t){if(!S.brush.auto)toast('先に塗るパーツか画像を選択してください');drag={type:'pan',last:sp,start:sp,moved:true};return}
+    startStroke(t,s2w(sp));drag={type:'stroke'};return}
+  if(tool==='fill'){const h=hitTest(sp);if(h&&h.type==='part'){pushUndo();const st=S.styles[h.id];st.type='solid';st.c1=S.brush.color;setSel(h);autosave()}
+    else if(!h)drag={type:'pan',last:sp,start:sp,moved:true};return}
+  if(tool==='picker'){const d=ctx.getImageData(Math.round(sp.x*dpr),Math.round(sp.y*dpr),1,1).data;
+    S.brush.color='#'+[d[0],d[1],d[2]].map(v=>v.toString(16).padStart(2,'0')).join('');syncBrush();toast('色を取得: '+S.brush.color);setTool('brush');return}
+});
+stage.addEventListener('pointermove',e=>{
+  if(!ptrs.has(e.pointerId))return;const sp=pos(e);ptrs.set(e.pointerId,sp);
+  if(pinch&&ptrs.size>=2){const[a,b]=[...ptrs.values()],d=len(sub(a,b)),m=mul(add(a,b),.5);
+    const s=Math.max(.05,Math.min(20,pinch.s*d/pinch.d)),w0=V((pinch.m.x-pinch.ox)/pinch.s,(pinch.m.y-pinch.oy)/pinch.s);
+    S.view.s=s;S.view.ox=m.x-w0.x*s;S.view.oy=m.y-w0.y*s;requestRender();return}
+  if(!drag)return;
+  if(drag.type==='pan'){S.view.ox+=sp.x-drag.last.x;S.view.oy+=sp.y-drag.last.y;drag.last=sp;if(len(sub(sp,drag.start))>5)drag.moved=true;requestRender()}
+  else if(drag.type==='move'){const w=s2w(sp);drag.im.x+=w.x-drag.last.x;drag.im.y+=w.y-drag.last.y;drag.last=w;drag.moved=true;requestRender()}
+  else if(drag.type==='scale'){const k=len(sub(sp,drag.c))/Math.max(1,len(sub(drag.start,drag.c)));drag.im.scale=Math.max(.005,drag.s0*k);syncImgVals();requestRender()}
+  else if(drag.type==='rotate'){const a0=Math.atan2(drag.start.y-drag.c.y,drag.start.x-drag.c.x),a1=Math.atan2(sp.y-drag.c.y,sp.x-drag.c.x);
+    let r=drag.r0+(a1-a0)/D2R;r=((r+180)%360+360)%360-180;drag.im.rot=Math.round(r*10)/10;syncImgVals();requestRender()}
+  else if(drag.type==='stroke'&&stroke){const evs=e.getCoalescedEvents?e.getCoalescedEvents():[e];for(const ev of evs)strokeTo(s2w(pos(ev)));requestRender()}
+});
+function endPtr(e){if(!ptrs.has(e.pointerId))return;ptrs.delete(e.pointerId);
+  if(pinch){if(ptrs.size<2)pinch=null;drag=null;return}
+  if(!drag)return;
+  if(drag.type==='stroke')endStroke();
+  else if(drag.type==='move'){if(!drag.moved){undoStack.pop();updUndo()}else autosave()}
+  else if(drag.type==='scale'||drag.type==='rotate')autosave();
+  else if(drag.type==='pan'&&!drag.moved&&S.tool==='select')setSel(drag.tap);
+  drag=null}
+stage.addEventListener('pointerup',endPtr);stage.addEventListener('pointercancel',endPtr);
+stage.addEventListener('wheel',e=>{e.preventDefault();const sp=pos(e),w=s2w(sp),k=Math.exp(-e.deltaY*.0015);
+  S.view.s=Math.max(.05,Math.min(20,S.view.s*k));S.view.ox=sp.x-w.x*S.view.s;S.view.oy=sp.y-w.y*S.view.s;requestRender()},{passive:false});
+window.addEventListener('keydown',e=>{if(/INPUT|SELECT|TEXTAREA/.test(document.activeElement?.tagName)&&document.activeElement.type!=='range')return;
+  const k=e.key.toLowerCase();
+  if((e.ctrlKey||e.metaKey)&&k==='z'){e.preventDefault();e.shiftKey?redo():undo();return}
+  if((e.ctrlKey||e.metaKey)&&k==='y'){e.preventDefault();redo();return}
+  if(e.ctrlKey||e.metaKey)return;
+  const map={v:'select',b:'brush',e:'eraser',g:'fill',i:'picker'};if(map[k])setTool(map[k]);
+  if(k==='['){S.brush.size=Math.max(1,S.brush.size-2);syncBrush()}if(k===']'){S.brush.size=Math.min(200,S.brush.size+2);syncBrush()}
+  if((k==='delete'||k==='backspace')&&S.sel&&S.sel.type==='img'){delImg()}});
+
+// ================= UI =================
+let toastT;function toast(m){const t=$('#toast');t.textContent=m;t.classList.add('show');clearTimeout(toastT);toastT=setTimeout(()=>t.classList.remove('show'),1800)}
+function setTool(t){S.tool=t;document.querySelectorAll('#toolbar [data-tool]').forEach(b=>b.classList.toggle('on',b.dataset.tool===t));
+  stage.style.cursor=t==='select'?'default':'crosshair'}
+document.querySelectorAll('#toolbar [data-tool]').forEach(b=>b.onclick=()=>setTool(b.dataset.tool));
+$('#bUndo').onclick=undo;$('#bRedo').onclick=redo;$('#bFit').onclick=fitView;
+function showTab(t){document.querySelectorAll('#tabs [data-tab]').forEach(b=>b.classList.toggle('on',b.dataset.tab===t));
+  document.querySelectorAll('section[data-body]').forEach(s=>s.classList.toggle('on',s.dataset.body===t));$('#panel').classList.remove('collapsed');setTimeout(resize,0)}
+document.querySelectorAll('#tabs [data-tab]').forEach(b=>b.onclick=()=>showTab(b.dataset.tab));
+$('#collapse').onclick=()=>{const p=$('#panel');p.classList.toggle('collapsed');$('#collapse').textContent=p.classList.contains('collapsed')?'▴':'▾';setTimeout(()=>{resize()},0)};
+
+function bindUndoable(elm,fn,undoable=true){let active=false;
+  elm.addEventListener('input',()=>{if(undoable&&!active){pushUndo();active=true}fn();requestRender()});
+  elm.addEventListener('change',()=>{active=false;autosave()})}
+function rangeRow(parent,label,min,max,step,unit,get,set,undoable=true){
+  const row=el('div','row'),lb=el('label'),r=el('input'),val=el('span','val');lb.textContent=label;r.type='range';r.min=min;r.max=max;r.step=step||1;
+  row.append(lb,r,val);parent.append(row);const show=()=>val.textContent=(+r.value)+(unit||'');
+  bindUndoable(r,()=>{set(+r.value);show()},undoable);return{row,sync(){r.value=get();show()}}}
+function selectRow(parent,label,opts,get,set){const row=el('div','row'),lb=el('label'),s=el('select');lb.textContent=label;
+  for(const[v,t]of opts){const o=el('option');o.value=v;o.textContent=t;s.append(o)}row.append(lb,s);parent.append(row);
+  bindUndoable(s,()=>set(s.value));return{row,sync(){s.value=String(get())}}}
+const SW=['#ffffff','#111111','#e63946','#ff7a00','#ffd60a','#8bd450','#2ec4b6','#2f6fe4','#1d3557','#7b2ff7','#ff5fa2','#8d99ae','#c0a062','#3a5a40','#b5651d'];
+function swatches(box,pick){for(const c of SW){const i=el('i');i.style.background=c;i.onclick=()=>pick(c);box.append(i)}}
+
+// geometry tab
+const geoCtrls=[];
+{const ps=$('#preset');for(const k in PRESET_NAMES){const o=el('option');o.value=k;o.textContent=PRESET_NAMES[k];ps.append(o)}
+  ps.onchange=()=>{pushUndo();S.preset=ps.value;S.P={...PRESETS[ps.value]};rebuild();syncAll();fitView();autosave()};
+  const box=$('#geoCtrls');
+  for(const d of PARAMS){
+    if(d.g){const h=el('h4');h.textContent=d.g;box.append(h);continue}
+    const onSet=v=>{S.P[d.k]=v;rebuild()};
+    geoCtrls.push(d.opts?selectRow(box,d.l,d.opts,()=>S.P[d.k],v=>onSet(d.num?+v:v)):rangeRow(box,d.l,d.min,d.max,d.step,d.u===undefined?'mm':d.u,()=>S.P[d.k],onSet))}
+  const b=el('div','btns'),fb=el('button','btn');fb.textContent='全体表示に合わせる';fb.onclick=fitView;b.append(fb);box.append(b);
+  const p=el('p','hint');p.textContent='数値はおおよその実寸（mm）です。ジオメトリを変えても、パーツの色や手描きは保持されます。';box.append(p)}
+function syncGeo(){$('#preset').value=S.preset||'road';geoCtrls.forEach(c=>c.sync())}
+
+// part tab
+const curPart=()=>S.sel&&S.sel.type==='part'&&partMap[S.sel.id]?S.sel.id:(partMap[lastPart]?lastPart:'dt');
+const curStyle=()=>S.styles[curPart()];
+const gradCtrls=[];
+{const box=$('#gradCtrls');
+  gradCtrls.push(rangeRow(box,'角度',-180,180,1,'°',()=>curStyle().angle,v=>curStyle().angle=v));
+  gradCtrls.push(rangeRow(box,'境目の位置',0,100,1,'%',()=>curStyle().mid,v=>curStyle().mid=v));
+  gradCtrls.push(rangeRow(box,'ぼかし幅',0,100,1,'%',()=>curStyle().soft,v=>curStyle().soft=v));
+  $('#partSel').onchange=e=>setSel({type:'part',id:e.target.value});
+  bindUndoable($('#pVis'),()=>curStyle().hidden=!$('#pVis').checked);
+  bindUndoable($('#pType'),()=>{curStyle().type=$('#pType').value;syncPart()});
+  bindUndoable($('#pC1'),()=>curStyle().c1=$('#pC1').value);
+  bindUndoable($('#pC2'),()=>curStyle().c2=$('#pC2').value);
+  bindUndoable($('#pRange'),()=>curStyle().range=$('#pRange').value);
+  swatches($('#pSw1'),c=>{pushUndo();curStyle().c1=c;syncPart();requestRender();autosave()});
+  swatches($('#pSw2'),c=>{pushUndo();curStyle().c2=c;syncPart();requestRender();autosave()});
+  const applyTo=pred=>{pushUndo();const src=curStyle();for(const id in S.styles)if(pred(PART_INFO[id][1])&&id!==curPart())S.styles[id]={...src,hidden:S.styles[id].hidden};requestRender();autosave();toast('適用しました')};
+  $('#pApplyGroup').onclick=()=>{const g=PART_INFO[curPart()][1];applyTo(x=>x===g)};
+  $('#pApplyFrame').onclick=()=>applyTo(x=>x==='frame'||x==='fork');
+  $('#pClear').onclick=()=>{const id=curPart();if(!S.layers[id])return toast('手描きはありません');pushUndo();delete S.layers[id];requestRender();autosave()}}
+function syncPartList(){const s=$('#partSel');s.innerHTML='';
+  for(const[g,gn]of GROUPS){const og=el('optgroup');og.label=gn;for(const id in PART_INFO)if(PART_INFO[id][1]===g){const o=el('option');o.value=id;o.textContent=PART_INFO[id][0]+(partMap[id]?'':'（現在の設定では非表示）');og.append(o)}s.append(og)}}
+function syncPart(){const id=curPart(),st=S.styles[id];$('#partSel').value=id;$('#pVis').checked=!st.hidden;$('#pType').value=st.type;
+  $('#pC1').value=st.c1;$('#pC2').value=st.c2;$('#pRange').value=st.range;$('#gradBox').style.display=st.type==='grad'?'':'none';gradCtrls.forEach(c=>c.sync())}
+
+// brush tab
+const brushCtrls=[];
+{const box=$('#brushCtrls');
+  brushCtrls.push(rangeRow(box,'太さ',1,200,1,'mm',()=>S.brush.size,v=>S.brush.size=v,false));
+  brushCtrls.push(rangeRow(box,'不透明度',1,100,1,'%',()=>Math.round(S.brush.opacity*100),v=>S.brush.opacity=v/100,false));
+  brushCtrls.push(rangeRow(box,'硬さ（100=くっきり）',0,100,1,'',()=>S.brush.hard,v=>S.brush.hard=v,false));
+  $('#bColor').oninput=()=>{S.brush.color=$('#bColor').value;autosave()};
+  $('#bAuto').onchange=()=>{S.brush.auto=$('#bAuto').checked;autosave()};
+  swatches($('#bSw'),c=>{S.brush.color=c;syncBrush();if(S.tool!=='fill'&&S.tool!=='brush')setTool('brush')})}
+function syncBrush(){$('#bColor').value=S.brush.color;$('#bAuto').checked=S.brush.auto;brushCtrls.forEach(c=>c.sync())}
+
+// image tab
+const curImg=()=>S.sel&&S.sel.type==='img'?getImg(S.sel.id):null;
+const imgCtrls=[];
+{const box=$('#imgCtrls');
+  imgCtrls.push(rangeRow(box,'幅',5,1600,1,'mm',()=>Math.round((curImg()?.w||0)*(curImg()?.scale||0)),v=>{const im=curImg();if(im)im.scale=v/im.w}));
+  imgCtrls.push(rangeRow(box,'回転',-180,180,.5,'°',()=>curImg()?.rot||0,v=>{const im=curImg();if(im)im.rot=v}));
+  imgCtrls.push(rangeRow(box,'不透明度',0,100,1,'%',()=>Math.round((curImg()?.opacity??1)*100),v=>{const im=curImg();if(im)im.opacity=v/100}));
+  bindUndoable($('#iFlip'),()=>{const im=curImg();if(im)im.flip=$('#iFlip').checked});
+  bindUndoable($('#iVis'),()=>{const im=curImg();if(im)im.hidden=!$('#iVis').checked});
+  bindUndoable($('#iLock'),()=>{const im=curImg();if(im)im.lock=$('#iLock').checked},false);
+  bindUndoable($('#iClip'),()=>{const im=curImg();if(im)im.clip=$('#iClip').value});
+  $('#iAdd').onclick=()=>$('#fileImg').click();
+  $('#fileImg').onchange=e=>{for(const f of e.target.files)addImageFile(f);e.target.value=''};
+  const move=d=>{const im=curImg();if(!im)return;const i=S.images.indexOf(im),j=i+d;if(j<0||j>=S.images.length)return;pushUndo();S.images.splice(i,1);S.images.splice(j,0,im);syncImg();requestRender();autosave()};
+  $('#iUp').onclick=()=>move(1);$('#iDown').onclick=()=>move(-1);
+  $('#iDup').onclick=()=>{const im=curImg();if(!im)return;pushUndo();const n={...im,id:'i'+(++imgSeq),canvas:cloneCanvas(im.canvas),x:im.x+30,y:im.y+30};S.images.push(n);setSel({type:'img',id:n.id});autosave()};
+  $('#iCenter').onclick=()=>{const im=curImg();if(!im)return;pushUndo();const c=s2w(V(W/2,H/2));im.x=c.x;im.y=c.y;requestRender();autosave()};
+  $('#iDel').onclick=delImg}
+function delImg(){const im=curImg();if(!im)return;pushUndo();S.images=S.images.filter(x=>x!==im);setSel(null);syncImg();autosave()}
+function syncImgVals(){imgCtrls.forEach(c=>c.sync())}
+function syncImg(){const list=$('#imgList');list.innerHTML='';
+  if(!S.images.length){const p=el('p','hint');p.textContent='まだ画像はありません。';list.append(p)}
+  [...S.images].reverse().forEach(im=>{const it=el('div','it'+(S.sel&&S.sel.id===im.id?' on':'')),th=mk(36,24),tc=th.getContext('2d'),k=Math.min(36/im.w,24/im.h);
+    tc.drawImage(im.canvas,(36-im.w*k)/2,(24-im.h*k)/2,im.w*k,im.h*k);const sp=el('span');sp.textContent=im.name+(im.clip&&partMap[im.clip]?' → '+PART_INFO[im.clip][0]:'');
+    it.append(th,sp);it.onclick=()=>{setSel({type:'img',id:im.id});setTool('select')};list.append(it)});
+  const im=curImg();$('#imgProps').classList.toggle('dis',!im);
+  const cs=$('#iClip');cs.innerHTML='';const o0=el('option');o0.value='';o0.textContent='なし（最前面に重ねる）';cs.append(o0);
+  for(const[g,gn]of GROUPS){const og=el('optgroup');og.label=gn;for(const p of parts)if(p.group===g){const o=el('option');o.value=p.id;o.textContent=PART_INFO[p.id][0];og.append(o)}cs.append(og)}
+  if(im){$('#iFlip').checked=im.flip;$('#iVis').checked=!im.hidden;$('#iLock').checked=im.lock;cs.value=partMap[im.clip]?im.clip:''}
+  syncImgVals()}
+function addImageFile(file){const url=URL.createObjectURL(file),img=new Image();
+  img.onload=()=>{let w=img.naturalWidth,h=img.naturalHeight;const m=Math.min(1,1600/Math.max(w,h));w=Math.round(w*m);h=Math.round(h*m);
+    const c=mk(w,h);c.getContext('2d').drawImage(img,0,0,w,h);URL.revokeObjectURL(url);
+    pushUndo();const ctr=s2w(V(W/2,H/2)),im={id:'i'+(++imgSeq),name:file.name.replace(/\.[^.]+$/,''),canvas:c,w,h,x:ctr.x,y:ctr.y,scale:250/w,rot:0,flip:false,opacity:1,clip:'',lock:true,hidden:false};
+    S.images.push(im);setTool('select');showTab('img');setSel({type:'img',id:im.id});autosave()};
+  img.onerror=()=>toast('画像を読み込めませんでした');img.src=url}
+
+// file / options tab
+{
+  $('#oBg').oninput=()=>{S.opts.bg=$('#oBg').value;requestRender();autosave()};
+  for(const[id,k]of[['#oOutline','outline'],['#oShade','shade'],['#oShadow','shadow'],['#oTrans','transparent']])$(id).onchange=e=>{S.opts[k]=e.target.checked;requestRender();autosave()};
+  $('#fPng').onclick=exportPNG;
+  $('#fSave').onclick=()=>download(new Blob([JSON.stringify(serialize())],{type:'application/json'}),'bike-color-project.json');
+  $('#fLoad').onclick=()=>$('#fileProj').click();
+  $('#fileProj').onchange=async e=>{const f=e.target.files[0];e.target.value='';if(!f)return;
+    try{const o=JSON.parse(await f.text());pushUndo();await deserialize(o);toast('読み込みました')}catch(err){toast('読み込みに失敗しました')}};
+  $('#fReset').onclick=()=>{if(!confirm('色・手描き・画像をすべてリセットしますか？'))return;pushUndo();const v=S.view;S=freshState();S.view=v;ensureStyles();rebuild();syncAll();fitView();autosave()}}
+function syncOpts(){$('#oBg').value=S.opts.bg;$('#oOutline').checked=S.opts.outline;$('#oShade').checked=S.opts.shade;$('#oShadow').checked=S.opts.shadow;$('#oTrans').checked=S.opts.transparent}
+function syncAll(){syncGeo();syncPartList();syncPart();syncBrush();syncImg();syncOpts();setTool(S.tool);updUndo()}
+
+function download(blob,name){const a=el('a');a.href=URL.createObjectURL(blob);a.download=name;document.body.append(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(a.href),4000)}
+function exportPNG(){let b=allBox;for(const im of S.images)if(!im.hidden&&!im.clip){const cs=[[-1,-1],[1,-1],[1,1],[-1,1]].map(([x,y])=>imgToWorld(im,x*im.w/2,y*im.h/2));
+    const xs=cs.map(p=>p.x),ys=cs.map(p=>p.y);b=union(b,{x:Math.min(...xs),y:Math.min(...ys),w:Math.max(...xs)-Math.min(...xs),h:Math.max(...ys)-Math.min(...ys)})}
+  b=expand(b,40);let k=2.5;k=Math.min(k,6000/b.w,6000/b.h);
+  const cw=Math.round(b.w*k),ch=Math.round(b.h*k),c=mk(cw,ch),t=mk(cw,ch);
+  renderScene(c.getContext('2d'),t.getContext('2d'),{a:k,e:-b.x*k,f:-b.y*k,k:k*.9},cw,ch,true);
+  c.toBlob(bl=>download(bl,'bike-color.png'),'image/png')}
+
+// ================= save / load =================
+function serialize(){return{app:'bike-color-sim',v:1,P:S.P,preset:S.preset,styles:S.styles,opts:S.opts,brush:S.brush,
+  layers:Object.fromEntries(Object.entries(S.layers).map(([k,L])=>[k,{x0:L.x0,y0:L.y0,data:L.canvas.toDataURL()}])),
+  images:S.images.map(im=>{const o={...im};delete o.canvas;o.data=im.canvas.toDataURL();return o})}}
+const loadCanvas=src=>new Promise((res,rej)=>{const i=new Image();i.onload=()=>{const c=mk(i.naturalWidth,i.naturalHeight);c.getContext('2d').drawImage(i,0,0);res(c)};i.onerror=rej;i.src=src});
+async function deserialize(o){if(!o||o.app!=='bike-color-sim')throw new Error('bad');
+  const n=freshState();n.view=S?S.view:n.view;n.P={...BASE,...o.P};n.preset=o.preset||'road';n.styles=o.styles||{};n.opts={...n.opts,...o.opts};n.brush={...n.brush,...o.brush};
+  for(const k in(o.layers||{})){const L=o.layers[k],c=await loadCanvas(L.data);n.layers[k]={canvas:c,x0:L.x0,y0:L.y0,w:c.width/RES,h:c.height/RES}}
+  for(const im of(o.images||[])){const c=await loadCanvas(im.data),x={...im,canvas:c,w:c.width,h:c.height};delete x.data;n.images.push(x);
+    const num=parseInt(String(im.id).slice(1));if(num>imgSeq)imgSeq=num}
+  S=n;ensureStyles();rebuild();syncAll();requestRender()}
+const AS_KEY='bike-color-sim:v1';let asT,asWarned=false;
+function autosave(){clearTimeout(asT);asT=setTimeout(()=>{try{localStorage.setItem(AS_KEY,JSON.stringify(serialize()))}catch(e){
+  try{const o=serialize();o.layers={};o.images=[];localStorage.setItem(AS_KEY,JSON.stringify(o))}catch(_){}
+  if(!asWarned){asWarned=true;toast('自動保存の容量オーバー：プロジェクト保存をお使いください')}}},1200)}
+
+// ================= boot =================
+(async()=>{S=freshState();ensureStyles();rebuild();
+  try{const raw=localStorage.getItem(AS_KEY);if(raw)await deserialize(JSON.parse(raw))}catch(e){S=freshState();ensureStyles();rebuild()}
+  syncAll();new ResizeObserver(()=>{const first=!W;resize();if(first)fitView()}).observe(wrap);resize();fitView()})();
+</script>
+</body>
+</html>
