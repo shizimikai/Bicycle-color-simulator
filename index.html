@@ -52,6 +52,25 @@ h4{margin:14px 0 4px;font-size:12px;color:var(--accent);font-weight:600;letter-s
   #panel{flex:0 0 370px;border-top:0;border-left:1px solid var(--line);height:100%}
   #collapse{display:none}
 }
+.txt{flex:1;min-width:0;background:#2a2d33;color:var(--text);border:1px solid var(--line);border-radius:8px;padding:7px;font-size:14px;-webkit-user-select:text;user-select:text}
+#dList{display:flex;flex-direction:column;gap:8px;margin:8px 0}
+.dItem{display:flex;gap:10px;align-items:center;border:1px solid var(--line);border-radius:10px;padding:8px}
+.dItem img{width:96px;height:60px;object-fit:contain;background:#fff;border-radius:6px;flex:0 0 auto}
+.dItem .meta{flex:1;min-width:0;font-size:13px}
+.dItem .meta b{display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.dItem .meta small{color:var(--muted)}
+.dItem .act{display:flex;flex-wrap:wrap;gap:4px;margin-top:6px}
+.dItem .act .btn{padding:5px 8px;font-size:12px}
+.dItem label.ck{display:flex;flex-direction:column;align-items:center;font-size:11px;color:var(--muted);gap:2px}
+.dItem.cur{border-style:dashed}
+#cmp{position:fixed;inset:0;background:var(--bg);z-index:10;display:flex;flex-direction:column}
+#cmp[hidden]{display:none}
+#cmpBar{display:flex;justify-content:space-between;align-items:center;padding:10px 14px;border-bottom:1px solid var(--line)}
+#cmpGrid{flex:1 1 0;min-height:0;overflow:auto;display:grid;gap:12px;padding:12px;align-content:start;grid-auto-rows:max-content}
+#cmpGrid figure{margin:0;background:#2a2d33;border-radius:10px;overflow:hidden;display:block}
+#cmpGrid img{width:100%;display:block;background:#fff}
+#cmpGrid figcaption{display:flex;justify-content:space-between;align-items:center;gap:8px;padding:8px 10px;font-size:13px}
+@media (max-width:699px){#cmpGrid{grid-template-columns:1fr!important}}
 </style>
 </head>
 <body>
@@ -59,91 +78,105 @@ h4{margin:14px 0 4px;font-size:12px;color:var(--accent);font-weight:600;letter-s
   <div id="stageWrap">
     <canvas id="stage"></canvas>
     <div id="toolbar">
-      <button data-tool="select" title="選択・移動 (V)">↖ 選択</button>
-      <button data-tool="brush" title="ブラシ (B)">🖌 ブラシ</button>
-      <button data-tool="eraser" title="消しゴム (E)">◌ 消しゴム</button>
-      <button data-tool="fill" title="パーツ単色塗り (G)">▣ 塗り</button>
-      <button data-tool="picker" title="スポイト (I)">💧 スポイト</button>
+      <button data-tool="select" data-it title="選択・移動 (V)" data-i>↖ 選択</button>
+      <button data-tool="brush" data-it title="ブラシ (B)" data-i>🖌 ブラシ</button>
+      <button data-tool="eraser" data-it title="消しゴム (E)" data-i>◌ 消しゴム</button>
+      <button data-tool="fill" data-it title="パーツ単色塗り (G)" data-i>▣ 塗り</button>
+      <button data-tool="picker" data-it title="スポイト (I)" data-i>💧 スポイト</button>
       <span class="sep"></span>
-      <button id="bUndo" title="元に戻す (Ctrl+Z)">↶</button>
-      <button id="bRedo" title="やり直し (Ctrl+Shift+Z)">↷</button>
-      <button id="bFit" title="全体表示">⤢</button>
+      <button id="bUndo" data-it title="元に戻す (Ctrl+Z)">↶</button>
+      <button id="bRedo" data-it title="やり直し (Ctrl+Shift+Z)">↷</button>
+      <button id="bFit" data-it title="全体表示">⤢</button>
+      <button id="bLang" data-it title="言語を切り替え">🌐</button>
     </div>
     <div id="badge"></div>
     <div id="toast"></div>
   </div>
   <div id="panel">
     <div id="tabs">
-      <button data-tab="geo" class="on">ジオメトリ</button>
-      <button data-tab="part">パーツ塗装</button>
-      <button data-tab="brush">ブラシ</button>
-      <button data-tab="img">画像</button>
-      <button data-tab="file">表示・保存</button>
-      <button id="collapse" title="パネルを畳む">▾</button>
+      <button data-tab="geo" class="on" data-i>ジオメトリ</button>
+      <button data-tab="part" data-i>パーツ塗装</button>
+      <button data-tab="brush" data-i>ブラシ</button>
+      <button data-tab="img" data-i>画像</button>
+      <button data-tab="designs" data-i>マイデザイン</button>
+      <button data-tab="file" data-i>表示・保存</button>
+      <button id="collapse" data-it title="パネルを畳む">▾</button>
     </div>
     <div id="bodies">
       <section data-body="geo" class="on">
-        <div class="row"><label>プリセット</label><select id="preset"></select></div>
+        <div class="row"><label data-i>プリセット</label><select id="preset"></select></div>
         <div id="geoCtrls"></div>
       </section>
       <section data-body="part">
-        <div class="row"><label>パーツ</label><select id="partSel"></select></div>
-        <div class="row"><label>表示</label><input type="checkbox" id="pVis"></div>
-        <div class="row"><label>塗り方</label><select id="pType"><option value="solid">単色</option><option value="grad">グラデーション／ツートン</option></select></div>
-        <div class="row"><label>色1</label><input type="color" id="pC1"><div class="sw" id="pSw1"></div></div>
+        <div class="row"><label data-i>パーツ</label><select id="partSel"></select></div>
+        <div class="row"><label data-i>表示</label><input type="checkbox" id="pVis"></div>
+        <div class="row"><label data-i>塗り方</label><select id="pType"><option value="solid" data-i>単色</option><option value="grad" data-i>グラデーション／ツートン</option></select></div>
+        <div class="row"><label data-i>色1</label><input type="color" id="pC1"><div class="sw" id="pSw1"></div></div>
         <div id="gradBox">
-          <div class="row"><label>色2</label><input type="color" id="pC2"><div class="sw" id="pSw2"></div></div>
+          <div class="row"><label data-i>色2</label><input type="color" id="pC2"><div class="sw" id="pSw2"></div></div>
           <div id="gradCtrls"></div>
-          <div class="row"><label>グラデ範囲</label><select id="pRange"><option value="part">パーツごと</option><option value="group">グループ全体（つながる）</option><option value="all">自転車全体</option></select></div>
+          <div class="row"><label data-i>グラデ範囲</label><select id="pRange"><option value="part" data-i>パーツごと</option><option value="group" data-i>グループ全体（つながる）</option><option value="all" data-i>自転車全体</option></select></div>
         </div>
         <div class="btns">
-          <button class="btn" id="pApplyGroup">同じグループに適用</button>
-          <button class="btn" id="pApplyFrame">フレーム＋フォークに適用</button>
-          <button class="btn danger" id="pClear">このパーツの手描きを消去</button>
+          <button class="btn" id="pApplyGroup" data-i>同じグループに適用</button>
+          <button class="btn" id="pApplyFrame" data-i>フレーム＋フォークに適用</button>
+          <button class="btn danger" id="pClear" data-i>このパーツの手描きを消去</button>
         </div>
-        <p class="hint">キャンバスのパーツをタップで選択。ブラシで描いた部分はパーツの形で自動的に切り抜かれます。ぼかし幅を0にするとツートンカラーになります。</p>
+        <p class="hint" data-i>キャンバスのパーツをタップで選択。ブラシで描いた部分はパーツの形で自動的に切り抜かれます。ぼかし幅を0にするとツートンカラーになります。</p>
       </section>
       <section data-body="brush">
-        <div class="row"><label>色</label><input type="color" id="bColor"><div class="sw" id="bSw"></div></div>
+        <div class="row"><label data-i>色</label><input type="color" id="bColor"><div class="sw" id="bSw"></div></div>
         <div id="brushCtrls"></div>
-        <div class="row"><label>描き始めた場所の<br>パーツ/画像に自動切替</label><input type="checkbox" id="bAuto"></div>
-        <p class="hint">オフにすると、選択中のパーツ／画像だけに描けます（はみ出しても他パーツに付かない）。2本指でズーム・移動、空いている所のドラッグでも移動できます。</p>
+        <div class="row"><label data-i>描き始めた場所の<br>パーツ/画像に自動切替</label><input type="checkbox" id="bAuto"></div>
+        <p class="hint" data-i>オフにすると、選択中のパーツ／画像だけに描けます（はみ出しても他パーツに付かない）。2本指でズーム・移動、空いている所のドラッグでも移動できます。</p>
       </section>
       <section data-body="img">
-        <div class="btns"><button class="btn primary" id="iAdd">＋ 画像を追加（PNG透過OK）</button></div>
+        <div class="btns"><button class="btn primary" id="iAdd" data-i>＋ 画像を追加（PNG透過OK）</button></div>
         <div id="imgList"></div>
         <div id="imgProps">
           <div id="imgCtrls"></div>
-          <div class="row"><label>左右反転</label><input type="checkbox" id="iFlip"></div>
-          <div class="row"><label>表示</label><input type="checkbox" id="iVis"></div>
-          <div class="row"><label>貼り付け先</label><select id="iClip"></select></div>
-          <div class="row"><label>透明部分を保護<br>してペイント</label><input type="checkbox" id="iLock"></div>
+          <div class="row"><label data-i>左右反転</label><input type="checkbox" id="iFlip"></div>
+          <div class="row"><label data-i>表示</label><input type="checkbox" id="iVis"></div>
+          <div class="row"><label data-i>貼り付け先</label><select id="iClip"></select></div>
+          <div class="row"><label data-i>透明部分を保護<br>してペイント</label><input type="checkbox" id="iLock"></div>
           <div class="btns">
-            <button class="btn" id="iUp">前面へ</button><button class="btn" id="iDown">背面へ</button>
-            <button class="btn" id="iDup">複製</button><button class="btn" id="iCenter">画面中央へ</button>
-            <button class="btn danger" id="iDel">削除</button>
+            <button class="btn" id="iUp" data-i>前面へ</button><button class="btn" id="iDown" data-i>背面へ</button>
+            <button class="btn" id="iDup" data-i>複製</button><button class="btn" id="iCenter" data-i>画面中央へ</button>
+            <button class="btn danger" id="iDel" data-i>削除</button>
           </div>
         </div>
-        <p class="hint">選択ツールで画像をドラッグして移動、右下の■で拡大縮小、上の●で回転。「貼り付け先」にパーツを選ぶと、そのパーツの形で切り抜かれます（ロゴやデカールに便利）。ブラシで画像にも描けます。</p>
+        <p class="hint" data-i>選択ツールで画像をドラッグして移動、右下の■で拡大縮小、上の●で回転。「貼り付け先」にパーツを選ぶと、そのパーツの形で切り抜かれます（ロゴやデカールに便利）。ブラシで画像にも描けます。</p>
+      </section>
+      <section data-body="designs">
+        <div class="row"><label data-i>デザイン名</label><input type="text" id="dName" class="txt"></div>
+        <div class="btns"><button class="btn primary" id="dSave" data-i>現在のデザインを保存</button><button class="btn" id="dCompare" data-i>チェックしたデザインを比較</button></div>
+        <div id="dList"></div>
+        <p class="hint" data-i>「比較」に最大3つまでチェックして並べて見られます。デザインはこのブラウザ内に保存されます（別の端末に移すときは「表示・保存」タブのプロジェクト保存を使ってください）。</p>
       </section>
       <section data-body="file">
-        <h4>表示</h4>
-        <div class="row"><label>背景色</label><input type="color" id="oBg"></div>
-        <div class="row"><label>輪郭線</label><input type="checkbox" id="oOutline"></div>
-        <div class="row"><label>立体感（陰影）</label><input type="checkbox" id="oShade"></div>
-        <div class="row"><label>地面の影</label><input type="checkbox" id="oShadow"></div>
-        <div class="row"><label>PNGを透過背景で</label><input type="checkbox" id="oTrans"></div>
-        <h4>書き出し・保存</h4>
+        <h4 data-i>言語 / Language</h4>
+        <div class="row"><label>Language</label><select id="oLang"><option value="ja">日本語</option><option value="en">English</option></select></div>
+        <h4 data-i>表示</h4>
+        <div class="row"><label data-i>背景色</label><input type="color" id="oBg"></div>
+        <div class="row"><label data-i>輪郭線</label><input type="checkbox" id="oOutline"></div>
+        <div class="row"><label data-i>立体感（陰影）</label><input type="checkbox" id="oShade"></div>
+        <div class="row"><label data-i>地面の影</label><input type="checkbox" id="oShadow"></div>
+        <div class="row"><label data-i>PNGを透過背景で</label><input type="checkbox" id="oTrans"></div>
+        <h4 data-i>書き出し・保存</h4>
         <div class="btns">
-          <button class="btn primary" id="fPng">PNG画像で書き出し</button>
-          <button class="btn" id="fSave">プロジェクト保存 (.json)</button>
-          <button class="btn" id="fLoad">プロジェクト読込</button>
-          <button class="btn danger" id="fReset">すべてリセット</button>
+          <button class="btn primary" id="fPng" data-i>PNG画像で書き出し</button>
+          <button class="btn" id="fSave" data-i>プロジェクト保存 (.json)</button>
+          <button class="btn" id="fLoad" data-i>プロジェクト読込</button>
+          <button class="btn danger" id="fReset" data-i>すべてリセット</button>
         </div>
-        <p class="hint">作業内容はこのブラウザに自動保存されます（容量オーバー時はプロジェクト保存を使ってください）。.jsonには画像・手描きも含まれるので、別の端末でも続きができます。</p>
+        <p class="hint" data-i>作業内容はこのブラウザに自動保存されます。.jsonには画像・手描きも含まれるので、別の端末でも続きができます。</p>
       </section>
     </div>
   </div>
+</div>
+<div id="cmp" hidden>
+  <div id="cmpBar"><b data-i>デザイン比較</b><button class="btn" id="cmpClose" data-i>閉じる</button></div>
+  <div id="cmpGrid"></div>
 </div>
 <input type="file" id="fileImg" accept="image/*" hidden>
 <input type="file" id="fileProj" accept=".json,application/json" hidden>
@@ -157,6 +190,16 @@ const polar=(r,t)=>V(r*Math.cos(t),r*Math.sin(t));
 const rot=(a,deg)=>{const t=deg*D2R,c=Math.cos(t),s=Math.sin(t);return V(a.x*c-a.y*s,a.x*s+a.y*c)};
 const F=p=>V(p.x,-p.y);
 const $=s=>document.querySelector(s);
+// ================= i18n =================
+const LANG_KEY='bike-color-sim:lang';
+const EN={"↖ 選択": "↖ Select", "🖌 ブラシ": "🖌 Brush", "◌ 消しゴム": "◌ Eraser", "▣ 塗り": "▣ Fill", "💧 スポイト": "💧 Picker", "選択・移動 (V)": "Select / move (V)", "ブラシ (B)": "Brush (B)", "消しゴム (E)": "Eraser (E)", "パーツ単色塗り (G)": "Fill part (G)", "スポイト (I)": "Eyedropper (I)", "元に戻す (Ctrl+Z)": "Undo (Ctrl+Z)", "やり直し (Ctrl+Shift+Z)": "Redo (Ctrl+Shift+Z)", "全体表示": "Fit to view", "言語を切り替え": "Switch language", "パネルを畳む": "Collapse panel", "ジオメトリ": "Geometry", "パーツ塗装": "Paint", "ブラシ": "Brush", "画像": "Images", "マイデザイン": "My designs", "表示・保存": "View & export", "プリセット": "Preset", "パーツ": "Part", "表示": "Visible", "塗り方": "Paint type", "単色": "Solid", "グラデーション／ツートン": "Gradient / two-tone", "色1": "Color 1", "色2": "Color 2", "グラデ範囲": "Gradient span", "パーツごと": "Per part", "グループ全体（つながる）": "Whole group (continuous)", "自転車全体": "Whole bike", "同じグループに適用": "Apply to group", "フレーム＋フォークに適用": "Apply to frame + fork", "このパーツの手描きを消去": "Clear painting on this part", "キャンバスのパーツをタップで選択。ブラシで描いた部分はパーツの形で自動的に切り抜かれます。ぼかし幅を0にするとツートンカラーになります。": "Tap a part on the canvas to select it. Brush strokes are automatically clipped to the part shape. Set blur width to 0 for a two-tone split.", "角度": "Angle", "境目の位置": "Split position", "ぼかし幅": "Blur width", "色": "Color", "太さ": "Size", "不透明度": "Opacity", "硬さ（100=くっきり）": "Hardness (100 = crisp)", "描き始めた場所の<br>パーツ/画像に自動切替": "Auto-select the part/image<br>under the stroke start", "オフにすると、選択中のパーツ／画像だけに描けます（はみ出しても他パーツに付かない）。2本指でズーム・移動、空いている所のドラッグでも移動できます。": "When off, you only paint on the selected part/image (overspill never touches other parts). Pinch with two fingers to zoom/pan, or drag empty space to pan.", "＋ 画像を追加（PNG透過OK）": "＋ Add image (transparent PNG OK)", "幅": "Width", "回転": "Rotation", "左右反転": "Flip horizontally", "貼り付け先": "Attach to", "透明部分を保護<br>してペイント": "Protect transparency<br>when painting", "前面へ": "Forward", "背面へ": "Backward", "複製": "Duplicate", "画面中央へ": "Center", "削除": "Delete", "選択ツールで画像をドラッグして移動、右下の■で拡大縮小、上の●で回転。「貼り付け先」にパーツを選ぶと、そのパーツの形で切り抜かれます（ロゴやデカールに便利）。ブラシで画像にも描けます。": "With the Select tool, drag an image to move it, use the ■ handle to scale and the ● handle to rotate. Choose a part in “Attach to” to clip the image to that part (great for logos and decals). You can also paint on images.", "まだ画像はありません。": "No images yet.", "なし（最前面に重ねる）": "None (on top of everything)", "デザイン名": "Design name", "現在のデザインを保存": "Save current design", "チェックしたデザインを比較": "Compare checked designs", "「比較」に最大3つまでチェックして並べて見られます。デザインはこのブラウザ内に保存されます（別の端末に移すときは「表示・保存」タブのプロジェクト保存を使ってください）。": "Check up to 3 designs under “Compare” to view them side by side. Designs are stored in this browser (to move them to another device, use Save project in the View & export tab).", "デザイン比較": "Compare designs", "閉じる": "Close", "開く": "Open", "上書き": "Overwrite", "比較": "Compare", "作業中のデザイン": "Current work (unsaved)", "保存したデザインはまだありません。": "No saved designs yet.", "保存しました": "Saved", "比較は3つまでです": "You can compare up to 3 designs", "比較するデザインを2つ以上チェックしてください": "Check at least 2 designs to compare", "開きました": "Opened", "このデザインを削除しますか？": "Delete this design?", "現在の作業内容でこのデザインを上書きしますか？": "Overwrite this design with your current work?", "デザイン": "Design", "このデザインを開く": "Open this design", "保存できませんでした": "Could not save", "言語 / Language": "Language / 言語", "背景色": "Background", "輪郭線": "Outlines", "立体感（陰影）": "Shading", "地面の影": "Ground shadow", "PNGを透過背景で": "Transparent PNG background", "書き出し・保存": "Export & save", "PNG画像で書き出し": "Export PNG", "プロジェクト保存 (.json)": "Save project (.json)", "プロジェクト読込": "Load project", "すべてリセット": "Reset everything", "作業内容はこのブラウザに自動保存されます。.jsonには画像・手描きも含まれるので、別の端末でも続きができます。": "Your work is saved automatically in this browser. A .json project includes images and painting, so you can continue on another device.", "先に塗るパーツか画像を選択してください": "Select a part or image to paint first", "色を取得: ": "Picked color: ", "適用しました": "Applied", "手描きはありません": "Nothing painted on this part", "画像を読み込めませんでした": "Could not load the image", "読み込みました": "Loaded", "読み込みに失敗しました": "Failed to load", "色・手描き・画像をすべてリセットしますか？": "Reset all colors, painting and images?", "対象: ": "Target: ", "未選択": "None", "画像: ": "Image: ", "（現在の設定では非表示）": " (not in current setup)", "全体表示に合わせる": "Fit to view", "数値はおおよその実寸（mm）です。ジオメトリを変えても、パーツの色や手描きは保持されます。": "Values are approximate real dimensions (mm). Colors and painting are kept when you change the geometry.", "ロード（オールラウンド）": "Road (all-round)", "エアロロード": "Aero road", "トラック／ピスト": "Track / fixie", "グラベル": "Gravel", "MTB（29erハードテール）": "MTB (29er hardtail)", "ミニベロ": "Mini velo", "フレーム寸法": "Frame geometry", "チューブの太さ（側面から見た幅）": "Tube sizes (side-view width)", "ホイール": "Wheels", "コクピット": "Cockpit", "ドライブトレイン": "Drivetrain", "スタック": "Stack", "リーチ": "Reach", "ヘッドチューブ長": "Head tube length", "ヘッド角": "Head angle", "シート角": "Seat angle", "トップチューブ傾斜": "Top tube slope", "チェーンステー長": "Chainstay length", "BBドロップ": "BB drop", "フォークオフセット": "Fork offset", "シートステー位置（下げ）": "Seatstay drop", "フォーク": "Fork", "リジッド": "Rigid", "サスペンション": "Suspension", "トップチューブ": "Top tube", "ダウンチューブ": "Down tube", "シートチューブ": "Seat tube", "ヘッドチューブ": "Head tube", "シートステー": "Seatstays", "チェーンステー": "Chainstays", "フォークブレード": "Fork blades", "ホイール径": "Wheel size", "タイプ": "Type", "スポーク": "Spoked", "リアのみディスク": "Rear disc only", "前後ディスク": "Front & rear disc", "リムハイト（高さ）": "Rim depth", "タイヤ幅": "Tire width", "スポーク本数": "Spoke count", "本": "", "スポーク組み": "Lacing", "ラジアル": "Radial", "1クロス": "1-cross", "2クロス": "2-cross", "3クロス": "3-cross", "ハブ径": "Hub diameter", "ハンドル": "Handlebar", "ドロップ": "Drop", "ブルホーン": "Bullhorn", "フラット": "Flat", "ライザー": "Riser", "ステム長": "Stem length", "ステム角度": "Stem angle", "コラムスペーサー": "Spacers", "サドル高（BBから）": "Saddle height (from BB)", "サドル前後": "Saddle fore/aft", "チェーンリング": "Chainring", "リアコグ": "Rear cog", "クランク長": "Crank length", "クランク角度": "Crank angle", "リアスポーク": "Rear spokes", "リアリム": "Rear rim", "リアタイヤ": "Rear tire", "リアハブ": "Rear hub", "フロントスポーク": "Front spokes", "フロントリム": "Front rim", "フロントタイヤ": "Front tire", "フロントハブ": "Front hub", "シートポスト": "Seatpost", "ハンドル／バーテープ": "Handlebar / tape", "ブラケット": "Hoods", "ステム": "Stem", "BBシェル": "BB shell", "インナーチューブ": "Stanchions", "スプロケット": "Cog", "チェーン": "Chain", "クランク": "Crank", "ペダル": "Pedal", "サドル": "Saddle", "フレーム": "Frame"};
+let LANG=(()=>{try{const v=localStorage.getItem(LANG_KEY);if(v==='ja'||v==='en')return v}catch(e){}
+  const l=(navigator.languages&&navigator.languages[0])||navigator.language||'en';return /^ja/i.test(l)?'ja':'en'})();
+const t=s=>LANG==='en'?(EN[s]??s):s;
+document.documentElement.lang=LANG;
+document.querySelectorAll('[data-i]').forEach(e=>{e.innerHTML=t(e.innerHTML.trim())});
+document.querySelectorAll('[data-it]').forEach(e=>{e.title=t(e.title)});
+
 const el=(t,c)=>{const e=document.createElement(t);if(c)e.className=c;return e};
 const mk=(w,h)=>{const c=document.createElement('canvas');c.width=Math.max(1,w|0);c.height=Math.max(1,h|0);return c};
 const cloneCanvas=c=>{const n=mk(c.width,c.height);n.getContext('2d').drawImage(c,0,0);return n};
@@ -190,6 +233,7 @@ const PART_INFO={
   cog:['スプロケット','drive','#9aa0a6'],chain:['チェーン','drive','#6b6f75'],ring:['チェーンリング','drive','#3a3b3f'],crank:['クランク','drive','#2a2a2d'],pedal:['ペダル','drive','#1c1c1e'],
   saddle:['サドル','cockpit','#1c1c1e']
 };
+const pn=id=>t(PART_INFO[id][0]);
 const GROUPS=[['frame','フレーム'],['fork','フォーク'],['wheel','ホイール'],['cockpit','コクピット'],['drive','ドライブトレイン']];
 const BASE={stack:560,reach:385,htLen:150,headAngle:73,seatAngle:73.5,ttSlope:6,csLen:408,bbDrop:70,rake:45,ssDrop:30,
   wTT:30,wDT:42,wST:32,wHT:46,wSS:16,wCS:22,wFork:30,forkType:'rigid',
@@ -420,8 +464,8 @@ function drawOverlay(vt){const sel=S.sel;if(!sel)return;ctx.save();
     ctx.beginPath();ctx.arc(h.rot.x,h.rot.y,8,0,7);ctx.fill();ctx.stroke();
     ctx.beginPath();ctx.rect(h.scale.x-7,h.scale.y-7,14,14);ctx.fill();ctx.stroke()}}
   ctx.restore()}
-function updBadge(){let t='未選択';if(S.sel){if(S.sel.type==='part'&&partMap[S.sel.id])t=PART_INFO[S.sel.id][0];else if(S.sel.type==='img'){const im=getImg(S.sel.id);if(im)t='画像: '+im.name}}
-  $('#badge').textContent='対象: '+t}
+function updBadge(){let x=t('未選択');if(S.sel){if(S.sel.type==='part'&&partMap[S.sel.id])x=pn(S.sel.id);else if(S.sel.type==='img'){const im=getImg(S.sel.id);if(im)x=t('画像: ')+im.name}}
+  $('#badge').textContent=t('対象: ')+x}
 function fitView(){if(!allBox||!W)return;const b=expand(allBox,30),top=W<600?92:56,avH=Math.max(50,H-top-10);
   const s=Math.min((W-20)/b.w,avH/b.h);S.view.s=s;S.view.ox=(W-b.w*s)/2-b.x*s;S.view.oy=top+(avH-b.h*s)/2-b.y*s;requestRender()}
 
@@ -493,7 +537,7 @@ stage.addEventListener('pointerdown',e=>{
   if(tool==='fill'){const h=hitTest(sp);if(h&&h.type==='part'){pushUndo();const st=S.styles[h.id];st.type='solid';st.c1=S.brush.color;setSel(h);autosave()}
     else if(!h)drag={type:'pan',last:sp,start:sp,moved:true};return}
   if(tool==='picker'){const d=ctx.getImageData(Math.round(sp.x*dpr),Math.round(sp.y*dpr),1,1).data;
-    S.brush.color='#'+[d[0],d[1],d[2]].map(v=>v.toString(16).padStart(2,'0')).join('');syncBrush();toast('色を取得: '+S.brush.color);setTool('brush');return}
+    S.brush.color='#'+[d[0],d[1],d[2]].map(v=>v.toString(16).padStart(2,'0')).join('');syncBrush();toast(t('色を取得: ')+S.brush.color);setTool('brush');return}
 });
 stage.addEventListener('pointermove',e=>{
   if(!ptrs.has(e.pointerId))return;const sp=pos(e);ptrs.set(e.pointerId,sp);
@@ -519,6 +563,7 @@ function endPtr(e){if(!ptrs.has(e.pointerId))return;ptrs.delete(e.pointerId);
 stage.addEventListener('pointerup',endPtr);stage.addEventListener('pointercancel',endPtr);
 stage.addEventListener('wheel',e=>{e.preventDefault();const sp=pos(e),w=s2w(sp),k=Math.exp(-e.deltaY*.0015);
   S.view.s=Math.max(.05,Math.min(20,S.view.s*k));S.view.ox=sp.x-w.x*S.view.s;S.view.oy=sp.y-w.y*S.view.s;requestRender()},{passive:false});
+window.addEventListener('visibilitychange',()=>{if(document.hidden)saveNow()});
 window.addEventListener('keydown',e=>{if(/INPUT|SELECT|TEXTAREA/.test(document.activeElement?.tagName)&&document.activeElement.type!=='range')return;
   const k=e.key.toLowerCase();
   if((e.ctrlKey||e.metaKey)&&k==='z'){e.preventDefault();e.shiftKey?redo():undo();return}
@@ -529,7 +574,7 @@ window.addEventListener('keydown',e=>{if(/INPUT|SELECT|TEXTAREA/.test(document.a
   if((k==='delete'||k==='backspace')&&S.sel&&S.sel.type==='img'){delImg()}});
 
 // ================= UI =================
-let toastT;function toast(m){const t=$('#toast');t.textContent=m;t.classList.add('show');clearTimeout(toastT);toastT=setTimeout(()=>t.classList.remove('show'),1800)}
+let toastT;function toast(m){const e=$('#toast');e.textContent=t(m);e.classList.add('show');clearTimeout(toastT);toastT=setTimeout(()=>e.classList.remove('show'),1800)}
 function setTool(t){S.tool=t;document.querySelectorAll('#toolbar [data-tool]').forEach(b=>b.classList.toggle('on',b.dataset.tool===t));
   stage.style.cursor=t==='select'?'default':'crosshair'}
 document.querySelectorAll('#toolbar [data-tool]').forEach(b=>b.onclick=()=>setTool(b.dataset.tool));
@@ -543,26 +588,26 @@ function bindUndoable(elm,fn,undoable=true){let active=false;
   elm.addEventListener('input',()=>{if(undoable&&!active){pushUndo();active=true}fn();requestRender()});
   elm.addEventListener('change',()=>{active=false;autosave()})}
 function rangeRow(parent,label,min,max,step,unit,get,set,undoable=true){
-  const row=el('div','row'),lb=el('label'),r=el('input'),val=el('span','val');lb.textContent=label;r.type='range';r.min=min;r.max=max;r.step=step||1;
-  row.append(lb,r,val);parent.append(row);const show=()=>val.textContent=(+r.value)+(unit||'');
+  const row=el('div','row'),lb=el('label'),r=el('input'),val=el('span','val');lb.innerHTML=t(label);r.type='range';r.min=min;r.max=max;r.step=step||1;
+  row.append(lb,r,val);parent.append(row);const show=()=>val.textContent=(+r.value)+t(unit||'');
   bindUndoable(r,()=>{set(+r.value);show()},undoable);return{row,sync(){r.value=get();show()}}}
-function selectRow(parent,label,opts,get,set){const row=el('div','row'),lb=el('label'),s=el('select');lb.textContent=label;
-  for(const[v,t]of opts){const o=el('option');o.value=v;o.textContent=t;s.append(o)}row.append(lb,s);parent.append(row);
+function selectRow(parent,label,opts,get,set){const row=el('div','row'),lb=el('label'),s=el('select');lb.innerHTML=t(label);
+  for(const[v,tx]of opts){const o=el('option');o.value=v;o.textContent=t(tx);s.append(o)}row.append(lb,s);parent.append(row);
   bindUndoable(s,()=>set(s.value));return{row,sync(){s.value=String(get())}}}
 const SW=['#ffffff','#111111','#e63946','#ff7a00','#ffd60a','#8bd450','#2ec4b6','#2f6fe4','#1d3557','#7b2ff7','#ff5fa2','#8d99ae','#c0a062','#3a5a40','#b5651d'];
 function swatches(box,pick){for(const c of SW){const i=el('i');i.style.background=c;i.onclick=()=>pick(c);box.append(i)}}
 
 // geometry tab
 const geoCtrls=[];
-{const ps=$('#preset');for(const k in PRESET_NAMES){const o=el('option');o.value=k;o.textContent=PRESET_NAMES[k];ps.append(o)}
+{const ps=$('#preset');for(const k in PRESET_NAMES){const o=el('option');o.value=k;o.textContent=t(PRESET_NAMES[k]);ps.append(o)}
   ps.onchange=()=>{pushUndo();S.preset=ps.value;S.P={...PRESETS[ps.value]};rebuild();syncAll();fitView();autosave()};
   const box=$('#geoCtrls');
   for(const d of PARAMS){
-    if(d.g){const h=el('h4');h.textContent=d.g;box.append(h);continue}
+    if(d.g){const h=el('h4');h.textContent=t(d.g);box.append(h);continue}
     const onSet=v=>{S.P[d.k]=v;rebuild()};
     geoCtrls.push(d.opts?selectRow(box,d.l,d.opts,()=>S.P[d.k],v=>onSet(d.num?+v:v)):rangeRow(box,d.l,d.min,d.max,d.step,d.u===undefined?'mm':d.u,()=>S.P[d.k],onSet))}
-  const b=el('div','btns'),fb=el('button','btn');fb.textContent='全体表示に合わせる';fb.onclick=fitView;b.append(fb);box.append(b);
-  const p=el('p','hint');p.textContent='数値はおおよその実寸（mm）です。ジオメトリを変えても、パーツの色や手描きは保持されます。';box.append(p)}
+  const b=el('div','btns'),fb=el('button','btn');fb.textContent=t('全体表示に合わせる');fb.onclick=fitView;b.append(fb);box.append(b);
+  const p=el('p','hint');p.textContent=t('数値はおおよその実寸（mm）です。ジオメトリを変えても、パーツの色や手描きは保持されます。');box.append(p)}
 function syncGeo(){$('#preset').value=S.preset||'road';geoCtrls.forEach(c=>c.sync())}
 
 // part tab
@@ -586,7 +631,7 @@ const gradCtrls=[];
   $('#pApplyFrame').onclick=()=>applyTo(x=>x==='frame'||x==='fork');
   $('#pClear').onclick=()=>{const id=curPart();if(!S.layers[id])return toast('手描きはありません');pushUndo();delete S.layers[id];requestRender();autosave()}}
 function syncPartList(){const s=$('#partSel');s.innerHTML='';
-  for(const[g,gn]of GROUPS){const og=el('optgroup');og.label=gn;for(const id in PART_INFO)if(PART_INFO[id][1]===g){const o=el('option');o.value=id;o.textContent=PART_INFO[id][0]+(partMap[id]?'':'（現在の設定では非表示）');og.append(o)}s.append(og)}}
+  for(const[g,gn]of GROUPS){const og=el('optgroup');og.label=t(gn);for(const id in PART_INFO)if(PART_INFO[id][1]===g){const o=el('option');o.value=id;o.textContent=pn(id)+(partMap[id]?'':t('（現在の設定では非表示）'));og.append(o)}s.append(og)}}
 function syncPart(){const id=curPart(),st=S.styles[id];$('#partSel').value=id;$('#pVis').checked=!st.hidden;$('#pType').value=st.type;
   $('#pC1').value=st.c1;$('#pC2').value=st.c2;$('#pRange').value=st.range;$('#gradBox').style.display=st.type==='grad'?'':'none';gradCtrls.forEach(c=>c.sync())}
 
@@ -622,13 +667,13 @@ const imgCtrls=[];
 function delImg(){const im=curImg();if(!im)return;pushUndo();S.images=S.images.filter(x=>x!==im);setSel(null);syncImg();autosave()}
 function syncImgVals(){imgCtrls.forEach(c=>c.sync())}
 function syncImg(){const list=$('#imgList');list.innerHTML='';
-  if(!S.images.length){const p=el('p','hint');p.textContent='まだ画像はありません。';list.append(p)}
+  if(!S.images.length){const p=el('p','hint');p.textContent=t('まだ画像はありません。');list.append(p)}
   [...S.images].reverse().forEach(im=>{const it=el('div','it'+(S.sel&&S.sel.id===im.id?' on':'')),th=mk(36,24),tc=th.getContext('2d'),k=Math.min(36/im.w,24/im.h);
-    tc.drawImage(im.canvas,(36-im.w*k)/2,(24-im.h*k)/2,im.w*k,im.h*k);const sp=el('span');sp.textContent=im.name+(im.clip&&partMap[im.clip]?' → '+PART_INFO[im.clip][0]:'');
+    tc.drawImage(im.canvas,(36-im.w*k)/2,(24-im.h*k)/2,im.w*k,im.h*k);const sp=el('span');sp.textContent=im.name+(im.clip&&partMap[im.clip]?' → '+pn(im.clip):'');
     it.append(th,sp);it.onclick=()=>{setSel({type:'img',id:im.id});setTool('select')};list.append(it)});
   const im=curImg();$('#imgProps').classList.toggle('dis',!im);
-  const cs=$('#iClip');cs.innerHTML='';const o0=el('option');o0.value='';o0.textContent='なし（最前面に重ねる）';cs.append(o0);
-  for(const[g,gn]of GROUPS){const og=el('optgroup');og.label=gn;for(const p of parts)if(p.group===g){const o=el('option');o.value=p.id;o.textContent=PART_INFO[p.id][0];og.append(o)}cs.append(og)}
+  const cs=$('#iClip');cs.innerHTML='';const o0=el('option');o0.value='';o0.textContent=t('なし（最前面に重ねる）');cs.append(o0);
+  for(const[g,gn]of GROUPS){const og=el('optgroup');og.label=t(gn);for(const p of parts)if(p.group===g){const o=el('option');o.value=p.id;o.textContent=pn(p.id);og.append(o)}cs.append(og)}
   if(im){$('#iFlip').checked=im.flip;$('#iVis').checked=!im.hidden;$('#iLock').checked=im.lock;cs.value=partMap[im.clip]?im.clip:''}
   syncImgVals()}
 function addImageFile(file){const url=URL.createObjectURL(file),img=new Image();
@@ -647,18 +692,11 @@ function addImageFile(file){const url=URL.createObjectURL(file),img=new Image();
   $('#fLoad').onclick=()=>$('#fileProj').click();
   $('#fileProj').onchange=async e=>{const f=e.target.files[0];e.target.value='';if(!f)return;
     try{const o=JSON.parse(await f.text());pushUndo();await deserialize(o);toast('読み込みました')}catch(err){toast('読み込みに失敗しました')}};
-  $('#fReset').onclick=()=>{if(!confirm('色・手描き・画像をすべてリセットしますか？'))return;pushUndo();const v=S.view;S=freshState();S.view=v;ensureStyles();rebuild();syncAll();fitView();autosave()}}
+  $('#fReset').onclick=()=>{if(!confirm(t('色・手描き・画像をすべてリセットしますか？')))return;pushUndo();const v=S.view;S=freshState();S.view=v;ensureStyles();rebuild();syncAll();fitView();autosave()}}
 function syncOpts(){$('#oBg').value=S.opts.bg;$('#oOutline').checked=S.opts.outline;$('#oShade').checked=S.opts.shade;$('#oShadow').checked=S.opts.shadow;$('#oTrans').checked=S.opts.transparent}
 function syncAll(){syncGeo();syncPartList();syncPart();syncBrush();syncImg();syncOpts();setTool(S.tool);updUndo()}
 
 function download(blob,name){const a=el('a');a.href=URL.createObjectURL(blob);a.download=name;document.body.append(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(a.href),4000)}
-function exportPNG(){let b=allBox;for(const im of S.images)if(!im.hidden&&!im.clip){const cs=[[-1,-1],[1,-1],[1,1],[-1,1]].map(([x,y])=>imgToWorld(im,x*im.w/2,y*im.h/2));
-    const xs=cs.map(p=>p.x),ys=cs.map(p=>p.y);b=union(b,{x:Math.min(...xs),y:Math.min(...ys),w:Math.max(...xs)-Math.min(...xs),h:Math.max(...ys)-Math.min(...ys)})}
-  b=expand(b,40);let k=2.5;k=Math.min(k,6000/b.w,6000/b.h);
-  const cw=Math.round(b.w*k),ch=Math.round(b.h*k),c=mk(cw,ch),t=mk(cw,ch);
-  renderScene(c.getContext('2d'),t.getContext('2d'),{a:k,e:-b.x*k,f:-b.y*k,k:k*.9},cw,ch,true);
-  c.toBlob(bl=>download(bl,'bike-color.png'),'image/png')}
-
 // ================= save / load =================
 function serialize(){return{app:'bike-color-sim',v:1,P:S.P,preset:S.preset,styles:S.styles,opts:S.opts,brush:S.brush,
   layers:Object.fromEntries(Object.entries(S.layers).map(([k,L])=>[k,{x0:L.x0,y0:L.y0,data:L.canvas.toDataURL()}])),
@@ -670,14 +708,69 @@ async function deserialize(o){if(!o||o.app!=='bike-color-sim')throw new Error('b
   for(const im of(o.images||[])){const c=await loadCanvas(im.data),x={...im,canvas:c,w:c.width,h:c.height};delete x.data;n.images.push(x);
     const num=parseInt(String(im.id).slice(1));if(num>imgSeq)imgSeq=num}
   S=n;ensureStyles();rebuild();syncAll();requestRender()}
+// ---- browser storage (IndexedDB: much larger than localStorage) ----
+const DB=(()=>{let p;const open=()=>p||(p=new Promise((res,rej)=>{const r=indexedDB.open('bike-color-sim',1);
+    r.onupgradeneeded=()=>{const d=r.result;d.createObjectStore('designs',{keyPath:'id'});d.createObjectStore('kv')};r.onsuccess=()=>res(r.result);r.onerror=()=>rej(r.error)}));
+  const tx=async(st,mode,fn)=>{const d=await open();return new Promise((res,rej)=>{const x=d.transaction(st,mode),q=fn(x.objectStore(st));x.oncomplete=()=>res(q&&q.result);x.onerror=()=>rej(x.error);x.onabort=()=>rej(x.error)})};
+  return{get:(st,k)=>tx(st,'readonly',o=>o.get(k)),put:(st,v,k)=>tx(st,'readwrite',o=>k===undefined?o.put(v):o.put(v,k)),del:(st,k)=>tx(st,'readwrite',o=>o.delete(k)),all:st=>tx(st,'readonly',o=>o.getAll())}})();
 const AS_KEY='bike-color-sim:v1';let asT,asWarned=false;
-function autosave(){clearTimeout(asT);asT=setTimeout(()=>{try{localStorage.setItem(AS_KEY,JSON.stringify(serialize()))}catch(e){
-  try{const o=serialize();o.layers={};o.images=[];localStorage.setItem(AS_KEY,JSON.stringify(o))}catch(_){}
-  if(!asWarned){asWarned=true;toast('自動保存の容量オーバー：プロジェクト保存をお使いください')}}},1200)}
+async function saveNow(){clearTimeout(asT);try{await DB.put('kv',serialize(),'autosave')}catch(e){
+  try{localStorage.setItem(AS_KEY,JSON.stringify(serialize()))}catch(_){if(!asWarned){asWarned=true;toast('保存できませんでした')}}}}
+function autosave(){clearTimeout(asT);asT=setTimeout(saveNow,1000)}
+async function loadAutosave(){let o=null;try{o=await DB.get('kv','autosave')}catch(e){}
+  if(!o){try{const raw=localStorage.getItem(AS_KEY);if(raw)o=JSON.parse(raw)}catch(e){}}return o}
+
+// ---- rendering to an image ----
+function renderBikeCanvas(k,transparent){let b=allBox;
+  for(const im of S.images)if(!im.hidden&&!im.clip){const cs=[[-1,-1],[1,-1],[1,1],[-1,1]].map(([x,y])=>imgToWorld(im,x*im.w/2,y*im.h/2));
+    const xs=cs.map(p=>p.x),ys=cs.map(p=>p.y);b=union(b,{x:Math.min(...xs),y:Math.min(...ys),w:Math.max(...xs)-Math.min(...xs),h:Math.max(...ys)-Math.min(...ys)})}
+  b=expand(b,40);if(typeof k==='object')k=k.width/b.w;k=Math.min(k,6000/b.w,6000/b.h);
+  const cw=Math.round(b.w*k),ch=Math.round(b.h*k),c=mk(cw,ch),tt=mk(cw,ch),tr=S.opts.transparent;S.opts.transparent=transparent;
+  renderScene(c.getContext('2d'),tt.getContext('2d'),{a:k,e:-b.x*k,f:-b.y*k,k:k*.9},cw,ch,true);S.opts.transparent=tr;return c}
+function exportPNG(){renderBikeCanvas(2.5,S.opts.transparent).toBlob(bl=>download(bl,'bike-color.png'),'image/png')}
+const previewURL=()=>renderBikeCanvas({width:1200},false).toDataURL('image/jpeg',.88);
+
+// ---- My designs ----
+const cmpSel=new Set();
+const fmtDate=ms=>new Date(ms).toLocaleString(LANG==='ja'?'ja-JP':'en-US',{year:'numeric',month:'short',day:'numeric',hour:'2-digit',minute:'2-digit'});
+async function listDesigns(){try{return(await DB.all('designs')).sort((a,b)=>b.date-a.date)}catch(e){return[]}}
+async function renderDesigns(){const box=$('#dList');const ds=await listDesigns();box.innerHTML='';
+  if(!$('#dName').value)$('#dName').value=t('デザイン')+' '+(ds.length+1);
+  const item=(d,cur)=>{const it=el('div','dItem'+(cur?' cur':'')),img=el('img'),meta=el('div','meta'),nm=el('b'),dt=el('small'),act=el('div','act');
+    img.src=cur?previewURL():d.thumb;img.alt='';nm.textContent=cur?t('作業中のデザイン'):d.name;dt.textContent=cur?'':fmtDate(d.date);meta.append(nm,dt,act);
+    const btn=(label,fn,cls)=>{const x=el('button','btn'+(cls?' '+cls:''));x.textContent=t(label);x.onclick=fn;act.append(x)};
+    if(!cur){btn('開く',()=>openDesign(d));btn('上書き',()=>overwriteDesign(d));btn('削除',()=>delDesign(d),'danger')}
+    const key=cur?'__cur':d.id,ck=el('label','ck'),cb=el('input');cb.type='checkbox';cb.checked=cmpSel.has(key);
+    cb.onchange=()=>{if(cb.checked){if(cmpSel.size>=3){cb.checked=false;return toast('比較は3つまでです')}cmpSel.add(key)}else cmpSel.delete(key)};
+    ck.append(cb,document.createTextNode(t('比較')));it.append(img,meta,ck);box.append(it)};
+  item(null,true);
+  if(!ds.length){const p=el('p','hint');p.textContent=t('保存したデザインはまだありません。');box.append(p)}
+  ds.forEach(d=>item(d,false));
+  for(const k of[...cmpSel])if(k!=='__cur'&&!ds.find(d=>d.id===k))cmpSel.delete(k)}
+async function saveDesign(){const name=($('#dName').value||'').trim()||t('デザイン');
+  try{await DB.put('designs',{id:'d'+Date.now(),name,date:Date.now(),thumb:previewURL(),data:serialize()});$('#dName').value='';toast('保存しました');renderDesigns()}
+  catch(e){toast('保存できませんでした')}}
+async function overwriteDesign(d){if(!confirm(t('現在の作業内容でこのデザインを上書きしますか？')))return;
+  try{await DB.put('designs',{...d,date:Date.now(),thumb:previewURL(),data:serialize()});toast('保存しました');renderDesigns()}catch(e){toast('保存できませんでした')}}
+async function delDesign(d){if(!confirm(t('このデザインを削除しますか？')))return;await DB.del('designs',d.id);cmpSel.delete(d.id);renderDesigns()}
+async function openDesign(d){try{pushUndo();await deserialize(d.data);fitView();autosave();$('#cmp').hidden=true;toast('開きました')}catch(e){toast('読み込みに失敗しました')}}
+async function showCompare(){if(cmpSel.size<2)return toast('比較するデザインを2つ以上チェックしてください');
+  const ds=await listDesigns(),g=$('#cmpGrid');g.innerHTML='';const keys=[...cmpSel];g.style.gridTemplateColumns=`repeat(${keys.length},1fr)`;
+  for(const k of keys){const cur=k==='__cur',d=cur?null:ds.find(x=>x.id===k);if(!cur&&!d)continue;
+    const fg=el('figure'),img=el('img'),cap=el('figcaption'),nm=el('span');img.src=cur?previewURL():d.thumb;nm.textContent=cur?t('作業中のデザイン'):d.name;cap.append(nm);
+    if(!cur){const ob=el('button','btn');ob.textContent=t('このデザインを開く');ob.onclick=()=>openDesign(d);cap.append(ob)}
+    fg.append(img,cap);g.append(fg)}
+  $('#cmp').hidden=false}
+$('#dSave').onclick=saveDesign;$('#dCompare').onclick=showCompare;$('#cmpClose').onclick=()=>$('#cmp').hidden=true;
+document.querySelector('#tabs [data-tab="designs"]').addEventListener('click',()=>renderDesigns());
+
+// ---- language ----
+async function setLang(l){if(l===LANG)return;try{localStorage.setItem(LANG_KEY,l)}catch(e){}await saveNow();location.reload()}
+$('#oLang').value=LANG;$('#oLang').onchange=e=>setLang(e.target.value);$('#bLang').onclick=()=>setLang(LANG==='ja'?'en':'ja');
 
 // ================= boot =================
 (async()=>{S=freshState();ensureStyles();rebuild();
-  try{const raw=localStorage.getItem(AS_KEY);if(raw)await deserialize(JSON.parse(raw))}catch(e){S=freshState();ensureStyles();rebuild()}
+  try{const o=await loadAutosave();if(o)await deserialize(o)}catch(e){S=freshState();ensureStyles();rebuild()}
   syncAll();new ResizeObserver(()=>{const first=!W;resize();if(first)fitView()}).observe(wrap);resize();fitView()})();
 </script>
 </body>
