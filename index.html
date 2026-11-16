@@ -50,6 +50,9 @@ h4{margin:14px 0 4px;font-size:12px;color:var(--accent);font-weight:600;letter-s
 .row input[type=checkbox]{width:20px;height:20px;accent-color:var(--accent)}
 .val{width:58px;text-align:right;font-size:12px;color:var(--muted);font-variant-numeric:tabular-nums}
 .sw{display:flex;flex-wrap:wrap;gap:4px;flex:1}
+.sw .mycHead{flex-basis:100%;font-size:11px;color:var(--muted);margin-top:4px}
+.sw i.mine{outline:2px solid rgba(255,204,0,.35);outline-offset:-1px;-webkit-touch-callout:none}
+.sw i.addc{display:flex;align-items:center;justify-content:center;font-style:normal;font-size:16px;color:var(--muted);border-style:dashed;background:none}
 .sw i{width:22px;height:22px;border-radius:6px;border:1px solid rgba(255,255,255,.25);cursor:pointer;display:block}
 .btns{display:flex;flex-wrap:wrap;gap:6px;margin:10px 0}
 .btn{background:#2a2d33;color:var(--text);border:1px solid var(--line);border-radius:8px;padding:8px 11px;font-size:13px;cursor:pointer}
@@ -129,7 +132,8 @@ h4{margin:14px 0 4px;font-size:12px;color:var(--accent);font-weight:600;letter-s
         <div id="gradBox">
           <div class="row"><label data-i>色2</label><input type="color" id="pC2"><div class="sw" id="pSw2"></div></div>
           <div id="gradCtrls"></div>
-          <div class="row"><label data-i>グラデ範囲</label><select id="pRange"><option value="part" data-i>パーツごと</option><option value="group" data-i>グループ全体（つながる）</option><option value="all" data-i>自転車全体</option></select></div>
+          <div class="row"><label data-i>グラデ範囲</label><select id="pRange"><option value="part" data-i>パーツごと</option><option value="group" data-i>グループ全体（つながる）</option><option value="all" data-i>自転車全体</option><option value="tube" data-i>チューブに沿う</option></select></div>
+          <div class="row" id="pRevRow"><label data-i>向きを反転</label><input type="checkbox" id="pRev"></div>
         </div>
         <div class="btns">
           <button class="btn" id="pApplyGroup" data-i>同じグループに適用</button>
@@ -206,7 +210,7 @@ const F=p=>V(p.x,-p.y);
 const $=s=>document.querySelector(s);
 // ================= i18n =================
 const LANG_KEY='bike-color-sim:lang';
-const EN={"↖ 選択": "↖ Select", "🖌 ブラシ": "🖌 Brush", "◌ 消しゴム": "◌ Eraser", "▣ 塗り": "▣ Fill", "💧 スポイト": "💧 Picker", "選択・移動 (V)": "Select / move (V)", "ブラシ (B)": "Brush (B)", "消しゴム (E)": "Eraser (E)", "パーツ単色塗り (G)": "Fill part (G)", "スポイト (I)": "Eyedropper (I)", "元に戻す (Ctrl+Z)": "Undo (Ctrl+Z)", "やり直し (Ctrl+Shift+Z)": "Redo (Ctrl+Shift+Z)", "全体表示": "Fit to view", "言語を切り替え": "Switch language", "パネルを畳む": "Collapse panel", "ジオメトリ": "Geometry", "パーツ塗装": "Paint", "ブラシ": "Brush", "画像": "Images", "マイデザイン": "My designs", "表示・保存": "View & export", "プリセット": "Preset", "パーツ": "Part", "表示": "Visible", "塗り方": "Paint type", "単色": "Solid", "グラデーション／ツートン": "Gradient / two-tone", "色1": "Color 1", "色2": "Color 2", "グラデ範囲": "Gradient span", "パーツごと": "Per part", "グループ全体（つながる）": "Whole group (continuous)", "自転車全体": "Whole bike", "同じグループに適用": "Apply to group", "フレーム＋フォークに適用": "Apply to frame + fork", "このパーツの手描きを消去": "Clear painting on this part", "キャンバスのパーツをタップで選択。ブラシで描いた部分はパーツの形で自動的に切り抜かれます。ぼかし幅を0にするとツートンカラーになります。": "Tap a part on the canvas to select it. Brush strokes are automatically clipped to the part shape. Set blur width to 0 for a two-tone split.", "角度": "Angle", "境目の位置": "Split position", "ぼかし幅": "Blur width", "色": "Color", "太さ": "Size", "不透明度": "Opacity", "硬さ（100=くっきり）": "Hardness (100 = crisp)", "描き始めた場所の<br>パーツ/画像に自動切替": "Auto-select the part/image<br>under the stroke start", "オフにすると、選択中のパーツ／画像だけに描けます（はみ出しても他パーツに付かない）。2本指でズーム・移動、空いている所のドラッグでも移動できます。": "When off, you only paint on the selected part/image (overspill never touches other parts). Pinch with two fingers to zoom/pan, or drag empty space to pan.", "＋ 画像を追加（PNG透過OK）": "＋ Add image (transparent PNG OK)", "幅": "Width", "回転": "Rotation", "左右反転": "Flip horizontally", "貼り付け先": "Attach to", "透明部分を保護<br>してペイント": "Protect transparency<br>when painting", "前面へ": "Forward", "背面へ": "Backward", "複製": "Duplicate", "画面中央へ": "Center", "削除": "Delete", "選択ツールで画像をドラッグして移動、右下の■で拡大縮小、上の●で回転。「貼り付け先」にパーツを選ぶと、そのパーツの形で切り抜かれます（ロゴやデカールに便利）。ブラシで画像にも描けます。": "With the Select tool, drag an image to move it, use the ■ handle to scale and the ● handle to rotate. Choose a part in “Attach to” to clip the image to that part (great for logos and decals). You can also paint on images.", "まだ画像はありません。": "No images yet.", "なし（最前面に重ねる）": "None (on top of everything)", "デザイン名": "Design name", "現在のデザインを保存": "Save current design", "チェックしたデザインを比較": "Compare checked designs", "「比較」に最大3つまでチェックして並べて見られます。デザインはこのブラウザ内に保存されます（別の端末に移すときは「表示・保存」タブのプロジェクト保存を使ってください）。": "Check up to 3 designs under “Compare” to view them side by side. Designs are stored in this browser (to move them to another device, use Save project in the View & export tab).", "デザイン比較": "Compare designs", "閉じる": "Close", "開く": "Open", "上書き": "Overwrite", "比較": "Compare", "作業中のデザイン": "Current work (unsaved)", "保存したデザインはまだありません。": "No saved designs yet.", "保存しました": "Saved", "比較は3つまでです": "You can compare up to 3 designs", "比較するデザインを2つ以上チェックしてください": "Check at least 2 designs to compare", "開きました": "Opened", "このデザインを削除しますか？": "Delete this design?", "現在の作業内容でこのデザインを上書きしますか？": "Overwrite this design with your current work?", "デザイン": "Design", "このデザインを開く": "Open this design", "保存できませんでした": "Could not save", "言語 / Language": "Language / 言語", "背景色": "Background", "輪郭線": "Outlines", "立体感（陰影）": "Shading", "地面の影": "Ground shadow", "PNGを透過背景で": "Transparent PNG background", "書き出し・保存": "Export & save", "PNG画像で書き出し": "Export PNG", "プロジェクト保存 (.json)": "Save project (.json)", "プロジェクト読込": "Load project", "すべてリセット": "Reset everything", "作業内容はこのブラウザに自動保存されます。.jsonには画像・手描きも含まれるので、別の端末でも続きができます。": "Your work is saved automatically in this browser. A .json project includes images and painting, so you can continue on another device.", "先に塗るパーツか画像を選択してください": "Select a part or image to paint first", "色を取得: ": "Picked color: ", "適用しました": "Applied", "手描きはありません": "Nothing painted on this part", "画像を読み込めませんでした": "Could not load the image", "読み込みました": "Loaded", "読み込みに失敗しました": "Failed to load", "色・手描き・画像をすべてリセットしますか？": "Reset all colors, painting and images?", "対象: ": "Target: ", "未選択": "None", "画像: ": "Image: ", "（現在の設定では非表示）": " (not in current setup)", "全体表示に合わせる": "Fit to view", "数値はおおよその実寸（mm）です。ジオメトリを変えても、パーツの色や手描きは保持されます。": "Values are approximate real dimensions (mm). Colors and painting are kept when you change the geometry.", "ロード（オールラウンド）": "Road (all-round)", "エアロロード": "Aero road", "トラック／ピスト": "Track / fixie", "グラベル": "Gravel", "MTB（29erハードテール）": "MTB (29er hardtail)", "ミニベロ": "Mini velo", "フレーム寸法": "Frame geometry", "チューブの太さ（側面から見た幅）": "Tube sizes (side-view width)", "ホイール": "Wheels", "コクピット": "Cockpit", "ドライブトレイン": "Drivetrain", "スタック": "Stack", "リーチ": "Reach", "ヘッドチューブ長": "Head tube length", "ヘッド角": "Head angle", "シート角": "Seat angle", "トップチューブ傾斜": "Top tube slope", "チェーンステー長": "Chainstay length", "BBドロップ": "BB drop", "フォークオフセット": "Fork offset", "シートステー位置（下げ）": "Seatstay drop", "フォーク": "Fork", "リジッド": "Rigid", "サスペンション": "Suspension", "トップチューブ": "Top tube", "ダウンチューブ": "Down tube", "シートチューブ": "Seat tube", "ヘッドチューブ": "Head tube", "シートステー": "Seatstays", "チェーンステー": "Chainstays", "フォークブレード": "Fork blades", "ホイール径": "Wheel size", "タイプ": "Type", "スポーク": "Spoked", "リアのみディスク": "Rear disc only", "前後ディスク": "Front & rear disc", "リムハイト（高さ）": "Rim depth", "タイヤ幅": "Tire width", "スポーク本数": "Spoke count", "本": "", "スポーク組み": "Lacing", "ラジアル": "Radial", "1クロス": "1-cross", "2クロス": "2-cross", "3クロス": "3-cross", "ハブ径": "Hub diameter", "ハンドル": "Handlebar", "ドロップ": "Drop", "ブルホーン": "Bullhorn", "フラット": "Flat", "ライザー": "Riser", "ステム長": "Stem length", "ステム角度": "Stem angle", "コラムスペーサー": "Spacers", "サドル高（BBから）": "Saddle height (from BB)", "サドル前後": "Saddle fore/aft", "チェーンリング": "Chainring", "リアコグ": "Rear cog", "クランク長": "Crank length", "クランク角度": "Crank angle", "リアスポーク": "Rear spokes", "リアリム": "Rear rim", "リアタイヤ": "Rear tire", "リアハブ": "Rear hub", "フロントスポーク": "Front spokes", "フロントリム": "Front rim", "フロントタイヤ": "Front tire", "フロントハブ": "Front hub", "シートポスト": "Seatpost", "ハンドル／バーテープ": "Handlebar / tape", "ブラケット": "Hoods", "ステム": "Stem", "BBシェル": "BB shell", "インナーチューブ": "Stanchions", "スプロケット": "Cog", "チェーン": "Chain", "クランク": "Crank", "ペダル": "Pedal", "サドル": "Saddle", "フレーム": "Frame"};
+const EN={"チューブに沿う":"Along the tube","向きを反転":"Reverse direction","マイカラー":"My colors","長押しで削除":"long-press to remove","マイカラーを削除しますか？":"Remove this color?","今の色をマイカラーに追加":"Add current color to My colors","マイカラーに追加しました":"Added to My colors","キッズ（16インチ）":"Kids (16\")","16\" キッズ (305)":"16\" kids (305)","12\" キッズ (203)":"12\" kids (203)","サドルの大きさ":"Saddle size","↖ 選択": "↖ Select", "🖌 ブラシ": "🖌 Brush", "◌ 消しゴム": "◌ Eraser", "▣ 塗り": "▣ Fill", "💧 スポイト": "💧 Picker", "選択・移動 (V)": "Select / move (V)", "ブラシ (B)": "Brush (B)", "消しゴム (E)": "Eraser (E)", "パーツ単色塗り (G)": "Fill part (G)", "スポイト (I)": "Eyedropper (I)", "元に戻す (Ctrl+Z)": "Undo (Ctrl+Z)", "やり直し (Ctrl+Shift+Z)": "Redo (Ctrl+Shift+Z)", "全体表示": "Fit to view", "言語を切り替え": "Switch language", "パネルを畳む": "Collapse panel", "ジオメトリ": "Geometry", "パーツ塗装": "Paint", "ブラシ": "Brush", "画像": "Images", "マイデザイン": "My designs", "表示・保存": "View & export", "プリセット": "Preset", "パーツ": "Part", "表示": "Visible", "塗り方": "Paint type", "単色": "Solid", "グラデーション／ツートン": "Gradient / two-tone", "色1": "Color 1", "色2": "Color 2", "グラデ範囲": "Gradient span", "パーツごと": "Per part", "グループ全体（つながる）": "Whole group (continuous)", "自転車全体": "Whole bike", "同じグループに適用": "Apply to group", "フレーム＋フォークに適用": "Apply to frame + fork", "このパーツの手描きを消去": "Clear painting on this part", "キャンバスのパーツをタップで選択。ブラシで描いた部分はパーツの形で自動的に切り抜かれます。ぼかし幅を0にするとツートンカラーになります。": "Tap a part on the canvas to select it. Brush strokes are automatically clipped to the part shape. Set blur width to 0 for a two-tone split.", "角度": "Angle", "境目の位置": "Split position", "ぼかし幅": "Blur width", "色": "Color", "太さ": "Size", "不透明度": "Opacity", "硬さ（100=くっきり）": "Hardness (100 = crisp)", "描き始めた場所の<br>パーツ/画像に自動切替": "Auto-select the part/image<br>under the stroke start", "オフにすると、選択中のパーツ／画像だけに描けます（はみ出しても他パーツに付かない）。2本指でズーム・移動、空いている所のドラッグでも移動できます。": "When off, you only paint on the selected part/image (overspill never touches other parts). Pinch with two fingers to zoom/pan, or drag empty space to pan.", "＋ 画像を追加（PNG透過OK）": "＋ Add image (transparent PNG OK)", "幅": "Width", "回転": "Rotation", "左右反転": "Flip horizontally", "貼り付け先": "Attach to", "透明部分を保護<br>してペイント": "Protect transparency<br>when painting", "前面へ": "Forward", "背面へ": "Backward", "複製": "Duplicate", "画面中央へ": "Center", "削除": "Delete", "選択ツールで画像をドラッグして移動、右下の■で拡大縮小、上の●で回転。「貼り付け先」にパーツを選ぶと、そのパーツの形で切り抜かれます（ロゴやデカールに便利）。ブラシで画像にも描けます。": "With the Select tool, drag an image to move it, use the ■ handle to scale and the ● handle to rotate. Choose a part in “Attach to” to clip the image to that part (great for logos and decals). You can also paint on images.", "まだ画像はありません。": "No images yet.", "なし（最前面に重ねる）": "None (on top of everything)", "デザイン名": "Design name", "現在のデザインを保存": "Save current design", "チェックしたデザインを比較": "Compare checked designs", "「比較」に最大3つまでチェックして並べて見られます。デザインはこのブラウザ内に保存されます（別の端末に移すときは「表示・保存」タブのプロジェクト保存を使ってください）。": "Check up to 3 designs under “Compare” to view them side by side. Designs are stored in this browser (to move them to another device, use Save project in the View & export tab).", "デザイン比較": "Compare designs", "閉じる": "Close", "開く": "Open", "上書き": "Overwrite", "比較": "Compare", "作業中のデザイン": "Current work (unsaved)", "保存したデザインはまだありません。": "No saved designs yet.", "保存しました": "Saved", "比較は3つまでです": "You can compare up to 3 designs", "比較するデザインを2つ以上チェックしてください": "Check at least 2 designs to compare", "開きました": "Opened", "このデザインを削除しますか？": "Delete this design?", "現在の作業内容でこのデザインを上書きしますか？": "Overwrite this design with your current work?", "デザイン": "Design", "このデザインを開く": "Open this design", "保存できませんでした": "Could not save", "言語 / Language": "Language / 言語", "背景色": "Background", "輪郭線": "Outlines", "立体感（陰影）": "Shading", "地面の影": "Ground shadow", "PNGを透過背景で": "Transparent PNG background", "書き出し・保存": "Export & save", "PNG画像で書き出し": "Export PNG", "プロジェクト保存 (.json)": "Save project (.json)", "プロジェクト読込": "Load project", "すべてリセット": "Reset everything", "作業内容はこのブラウザに自動保存されます。.jsonには画像・手描きも含まれるので、別の端末でも続きができます。": "Your work is saved automatically in this browser. A .json project includes images and painting, so you can continue on another device.", "先に塗るパーツか画像を選択してください": "Select a part or image to paint first", "色を取得: ": "Picked color: ", "適用しました": "Applied", "手描きはありません": "Nothing painted on this part", "画像を読み込めませんでした": "Could not load the image", "読み込みました": "Loaded", "読み込みに失敗しました": "Failed to load", "色・手描き・画像をすべてリセットしますか？": "Reset all colors, painting and images?", "対象: ": "Target: ", "未選択": "None", "画像: ": "Image: ", "（現在の設定では非表示）": " (not in current setup)", "全体表示に合わせる": "Fit to view", "数値はおおよその実寸（mm）です。ジオメトリを変えても、パーツの色や手描きは保持されます。": "Values are approximate real dimensions (mm). Colors and painting are kept when you change the geometry.", "ロード（オールラウンド）": "Road (all-round)", "エアロロード": "Aero road", "トラック／ピスト": "Track / fixie", "グラベル": "Gravel", "MTB（29erハードテール）": "MTB (29er hardtail)", "ミニベロ": "Mini velo", "フレーム寸法": "Frame geometry", "チューブの太さ（側面から見た幅）": "Tube sizes (side-view width)", "ホイール": "Wheels", "コクピット": "Cockpit", "ドライブトレイン": "Drivetrain", "スタック": "Stack", "リーチ": "Reach", "ヘッドチューブ長": "Head tube length", "ヘッド角": "Head angle", "シート角": "Seat angle", "トップチューブ傾斜": "Top tube slope", "チェーンステー長": "Chainstay length", "BBドロップ": "BB drop", "フォークオフセット": "Fork offset", "シートステー位置（下げ）": "Seatstay drop", "フォーク": "Fork", "リジッド": "Rigid", "サスペンション": "Suspension", "トップチューブ": "Top tube", "ダウンチューブ": "Down tube", "シートチューブ": "Seat tube", "ヘッドチューブ": "Head tube", "シートステー": "Seatstays", "チェーンステー": "Chainstays", "フォークブレード": "Fork blades", "ホイール径": "Wheel size", "タイプ": "Type", "スポーク": "Spoked", "リアのみディスク": "Rear disc only", "前後ディスク": "Front & rear disc", "リムハイト（高さ）": "Rim depth", "タイヤ幅": "Tire width", "スポーク本数": "Spoke count", "本": "", "スポーク組み": "Lacing", "ラジアル": "Radial", "1クロス": "1-cross", "2クロス": "2-cross", "3クロス": "3-cross", "ハブ径": "Hub diameter", "ハンドル": "Handlebar", "ドロップ": "Drop", "ブルホーン": "Bullhorn", "フラット": "Flat", "ライザー": "Riser", "ステム長": "Stem length", "ステム角度": "Stem angle", "コラムスペーサー": "Spacers", "サドル高（BBから）": "Saddle height (from BB)", "サドル前後": "Saddle fore/aft", "チェーンリング": "Chainring", "リアコグ": "Rear cog", "クランク長": "Crank length", "クランク角度": "Crank angle", "リアスポーク": "Rear spokes", "リアリム": "Rear rim", "リアタイヤ": "Rear tire", "リアハブ": "Rear hub", "フロントスポーク": "Front spokes", "フロントリム": "Front rim", "フロントタイヤ": "Front tire", "フロントハブ": "Front hub", "シートポスト": "Seatpost", "ハンドル／バーテープ": "Handlebar / tape", "ブラケット": "Hoods", "ステム": "Stem", "BBシェル": "BB shell", "インナーチューブ": "Stanchions", "スプロケット": "Cog", "チェーン": "Chain", "クランク": "Crank", "ペダル": "Pedal", "サドル": "Saddle", "フレーム": "Frame"};
 let LANG=(()=>{try{const v=localStorage.getItem(LANG_KEY);if(v==='ja'||v==='en')return v}catch(e){}
   const l=(navigator.languages&&navigator.languages[0])||navigator.language||'en';return /^ja/i.test(l)?'ja':'en'})();
 const t=s=>LANG==='en'?(EN[s]??s):s;
@@ -252,29 +256,30 @@ const GROUPS=[['frame','フレーム'],['fork','フォーク'],['wheel','ホイ�
 const BASE={stack:560,reach:385,htLen:150,headAngle:73,seatAngle:73.5,ttSlope:6,csLen:408,bbDrop:70,rake:45,ssDrop:30,
   wTT:30,wDT:42,wST:32,wHT:46,wSS:16,wCS:22,wFork:30,forkType:'rigid',
   wheel:622,rimH:35,tire:26,spokes:24,lacing:'2',wheelType:'spoke',hub:34,
-  bar:'drop',stemLen:100,stemAngle:-6,spacer:20,saddleH:720,setback:0,ring:50,cog:15,crankLen:170,crankAngle:300};
+  bar:'drop',stemLen:100,stemAngle:-6,spacer:20,saddleH:720,setback:0,saddleScale:100,ring:50,cog:15,crankLen:170,crankAngle:300};
 const PRESETS={
   road:{...BASE},
   aero:{...BASE,stack:550,reach:395,htLen:140,headAngle:73.3,ttSlope:5,csLen:405,bbDrop:72,ssDrop:110,wTT:38,wDT:62,wST:50,wHT:58,wSS:14,wCS:24,wFork:40,rimH:60,tire:28,spokes:20,lacing:'0',stemAngle:-12,spacer:10},
   track:{...BASE,stack:540,reach:395,htLen:130,headAngle:74,seatAngle:74.5,ttSlope:0,csLen:390,bbDrop:60,rake:35,ssDrop:15,wTT:28,wDT:38,wST:30,wHT:40,wSS:14,wCS:20,wFork:26,rimH:45,tire:23,wheelType:'rearDisc',bar:'bullhorn',stemAngle:-17,spacer:10,ring:48,cog:16,lacing:'0'},
   gravel:{...BASE,stack:590,reach:380,htLen:165,headAngle:71.5,ttSlope:9,csLen:425,bbDrop:72,rake:50,ssDrop:60,wTT:32,wDT:46,wHT:46,wSS:15,wFork:32,rimH:25,tire:42,spokes:28,ring:40,cog:22,lacing:'3'},
   mtb:{...BASE,stack:625,reach:440,htLen:110,headAngle:66,seatAngle:75,ttSlope:12,csLen:435,bbDrop:60,rake:44,ssDrop:80,wTT:38,wDT:55,wST:34,wHT:52,wSS:18,wCS:24,wFork:34,forkType:'sus',rimH:22,tire:58,spokes:32,lacing:'3',bar:'riser',stemLen:50,stemAngle:0,spacer:15,saddleH:740,ring:32,cog:28,hub:40},
+  kids:{...BASE,stack:360,reach:290,htLen:90,headAngle:70,seatAngle:72,ttSlope:18,csLen:300,bbDrop:22,rake:30,ssDrop:30,wTT:30,wDT:36,wST:28,wHT:38,wSS:14,wCS:18,wFork:24,wheel:305,rimH:16,tire:50,spokes:28,lacing:'2',hub:30,bar:'riser',stemLen:40,stemAngle:15,spacer:25,saddleH:450,setback:0,saddleScale:75,ring:28,cog:16,crankLen:102},
   minivelo:{...BASE,stack:470,reach:370,htLen:110,headAngle:73,seatAngle:73,ttSlope:0,csLen:400,bbDrop:-40,rake:40,ssDrop:30,wTT:30,wDT:38,wST:30,wHT:40,wSS:14,wCS:20,wFork:26,wheel:451,rimH:20,tire:28,spokes:20,lacing:'0',bar:'flat',stemLen:90,stemAngle:10,spacer:60,saddleH:700,ring:52,cog:13}
 };
-const PRESET_NAMES={road:'ロード（オールラウンド）',aero:'エアロロード',track:'トラック／ピスト',gravel:'グラベル',mtb:'MTB（29erハードテール）',minivelo:'ミニベロ'};
+const PRESET_NAMES={road:'ロード（オールラウンド）',aero:'エアロロード',track:'トラック／ピスト',gravel:'グラベル',mtb:'MTB（29erハードテール）',minivelo:'ミニベロ',kids:'キッズ（16インチ）'};
 const PARAMS=[
   {g:'フレーム寸法'},
-  {k:'stack',l:'スタック',min:420,max:720},{k:'reach',l:'リーチ',min:320,max:520},
+  {k:'stack',l:'スタック',min:300,max:720},{k:'reach',l:'リーチ',min:240,max:520},
   {k:'htLen',l:'ヘッドチューブ長',min:60,max:260},{k:'headAngle',l:'ヘッド角',min:62,max:76,step:.5,u:'°'},
   {k:'seatAngle',l:'シート角',min:68,max:80,step:.5,u:'°'},{k:'ttSlope',l:'トップチューブ傾斜',min:-4,max:22,step:.5,u:'°'},
-  {k:'csLen',l:'チェーンステー長',min:360,max:480},{k:'bbDrop',l:'BBドロップ',min:-90,max:95},
+  {k:'csLen',l:'チェーンステー長',min:280,max:480},{k:'bbDrop',l:'BBドロップ',min:-90,max:95},
   {k:'rake',l:'フォークオフセット',min:15,max:70},{k:'ssDrop',l:'シートステー位置（下げ）',min:0,max:220},
   {k:'forkType',l:'フォーク',opts:[['rigid','リジッド'],['sus','サスペンション']]},
   {g:'チューブの太さ（側面から見た幅）'},
   {k:'wTT',l:'トップチューブ',min:14,max:75},{k:'wDT',l:'ダウンチューブ',min:18,max:95},{k:'wST',l:'シートチューブ',min:18,max:85},
   {k:'wHT',l:'ヘッドチューブ',min:28,max:85},{k:'wSS',l:'シートステー',min:8,max:45},{k:'wCS',l:'チェーンステー',min:10,max:50},{k:'wFork',l:'フォークブレード',min:14,max:65},
   {g:'ホイール'},
-  {k:'wheel',l:'ホイール径',num:true,opts:[['622','700C / 29er'],['584','650B / 27.5"'],['559','26"'],['451','20" (451)'],['406','20" (406)'],['349','16" (349)']]},
+  {k:'wheel',l:'ホイール径',num:true,opts:[['622','700C / 29er'],['584','650B / 27.5"'],['559','26"'],['451','20" (451)'],['406','20" (406)'],['349','16" (349)'],['305','16" キッズ (305)'],['203','12" キッズ (203)']]},
   {k:'wheelType',l:'タイプ',opts:[['spoke','スポーク'],['rearDisc','リアのみディスク'],['disc','前後ディスク']]},
   {k:'rimH',l:'リムハイト（高さ）',min:8,max:100},{k:'tire',l:'タイヤ幅',min:18,max:70},
   {k:'spokes',l:'スポーク本数',min:8,max:40,step:2,u:'本'},
@@ -283,10 +288,10 @@ const PARAMS=[
   {g:'コクピット'},
   {k:'bar',l:'ハンドル',opts:[['drop','ドロップ'],['bullhorn','ブルホーン'],['flat','フラット'],['riser','ライザー']]},
   {k:'stemLen',l:'ステム長',min:30,max:150},{k:'stemAngle',l:'ステム角度',min:-35,max:40,u:'°'},
-  {k:'spacer',l:'コラムスペーサー',min:0,max:120},{k:'saddleH',l:'サドル高（BBから）',min:480,max:900},{k:'setback',l:'サドル前後',min:-50,max:50},
+  {k:'spacer',l:'コラムスペーサー',min:0,max:120},{k:'saddleH',l:'サドル高（BBから）',min:300,max:900},{k:'setback',l:'サドル前後',min:-50,max:50},{k:'saddleScale',l:'サドルの大きさ',min:50,max:130,u:'%'},
   {g:'ドライブトレイン'},
   {k:'ring',l:'チェーンリング',min:26,max:62,u:'T'},{k:'cog',l:'リアコグ',min:9,max:52,u:'T'},
-  {k:'crankLen',l:'クランク長',min:140,max:185},{k:'crankAngle',l:'クランク角度',min:0,max:359,u:'°'}
+  {k:'crankLen',l:'クランク長',min:80,max:185},{k:'crankAngle',l:'クランク角度',min:0,max:359,u:'°'}
 ];
 
 // ================= geometry =================
@@ -367,11 +372,11 @@ function build(P){
   const ca=P.crankAngle*D2R, PA=polar(P.crankLen,ca), cr=new PB();
   for(let k=0;k<4;k++)cr.poly(tubePts(BB,polar(Math.max(24,ringR-10),ca+(45+90*k)*D2R),16,12));
   cr.poly(tubePts(BB,PA,34,22)).circle(BB,20).circle(PA,12);part('crank',cr,axis(BB,PA,34));
-  part('pedal',new PB().smooth([[-50,-6],[50,-6],[46,10],[-42,13]].map(o=>V(PA.x+o[0],PA.y+o[1]))));
+  const pk=Math.max(.6,Math.min(1,P.crankLen/165));part('pedal',new PB().smooth([[-50,-6],[50,-6],[46,10],[-42,13]].map(o=>V(PA.x+o[0]*pk,PA.y+o[1]*pk))));
   // saddle
-  const sb=add(SC,V(P.setback-10,0)), sp=new PB();
-  sp.smooth([[-128,30],[-122,50],[-70,53],[0,45],[80,39],[150,34],[162,28],[150,21],[60,21],[-20,23],[-100,21],[-126,21]].map(o=>V(sb.x+o[0],sb.y+o[1])));
-  sp.poly([[-92,24],[-58,6],[58,6],[100,24],[94,26],[56,11],[-56,11],[-86,26]].map(o=>V(sb.x+o[0],sb.y+o[1])));
+  const sb=add(SC,V(P.setback-10,0)), sp=new PB(), ss=(P.saddleScale||100)/100;
+  sp.smooth([[-128,30],[-122,50],[-70,53],[0,45],[80,39],[150,34],[162,28],[150,21],[60,21],[-20,23],[-100,21],[-126,21]].map(o=>V(sb.x+o[0]*ss,sb.y+o[1]*ss)));
+  sp.poly([[-92,24],[-58,6],[58,6],[100,24],[94,26],[56,11],[-56,11],[-86,26]].map(o=>V(sb.x+o[0]*ss,sb.y+o[1]*ss)));
   part('saddle',sp);
   return{parts:out,RA:F(RA),FA:F(FA),ground:-(ay-tireO),tireO};
 }
@@ -407,11 +412,18 @@ function render(){const vt={a:S.view.s*dpr,e:S.view.ox*dpr,f:S.view.oy*dpr,k:dpr
 
 function makeFill(c,p,st){
   if(st.type!=='grad')return st.c1;
-  let b=p.bbox;if(st.range==='group')b=groupBox[p.group];else if(st.range==='all')b=allBox;
-  const a=st.angle*D2R,dx=Math.cos(a),dy=Math.sin(a),cx=b.x+b.w/2,cy=b.y+b.h/2,L=(Math.abs(b.w*dx)+Math.abs(b.h*dy))/2||1;
-  const g=c.createLinearGradient(cx-dx*L,cy-dy*L,cx+dx*L,cy+dy*L);
-  const m=st.mid/100,sw=st.soft/200,s0=Math.max(0,Math.min(1,m-sw)),s1=Math.max(0,Math.min(1,m+sw));
-  g.addColorStop(s0,st.c1);g.addColorStop(s1,st.c2);return g}
+  let g,c1=st.c1,c2=st.c2,m=st.mid/100;
+  if(st.range==='tube'&&(p.axis||p.radial)){
+    // follow the tube: along its axis (tubes) or from inside to outside (wheels, rings)
+    if(st.rev){[c1,c2]=[c2,c1];m=1-m}
+    if(p.axis){const{a,b}=p.axis;g=c.createLinearGradient(a.x,a.y,b.x,b.y)}
+    else{const r=p.radial;g=c.createRadialGradient(r.c.x,r.c.y,r.r0,r.c.x,r.c.y,r.r1)}
+  }else{
+    let b=p.bbox;if(st.range==='group')b=groupBox[p.group];else if(st.range==='all')b=allBox;
+    const a=st.angle*D2R,dx=Math.cos(a),dy=Math.sin(a),cx=b.x+b.w/2,cy=b.y+b.h/2,L=(Math.abs(b.w*dx)+Math.abs(b.h*dy))/2||1;
+    g=c.createLinearGradient(cx-dx*L,cy-dy*L,cx+dx*L,cy+dy*L)}
+  const sw=st.soft/200,s0=Math.max(0,Math.min(1,m-sw)),s1=Math.max(0,Math.min(1,m+sw));
+  g.addColorStop(s0,c1);g.addColorStop(s1,c2);return g}
 function shade(c,p){const b=p.bbox;
   if(p.axis){const{a,b:bb,w}=p.axis,d=norm(sub(bb,a)),n=V(-d.y,d.x);
     const g=c.createLinearGradient(a.x+n.x*w/2,a.y+n.y*w/2,a.x-n.x*w/2,a.y-n.y*w/2);
@@ -609,7 +621,19 @@ function selectRow(parent,label,opts,get,set){const row=el('div','row'),lb=el('l
   for(const[v,tx]of opts){const o=el('option');o.value=v;o.textContent=t(tx);s.append(o)}row.append(lb,s);parent.append(row);
   bindUndoable(s,()=>set(s.value));return{row,sync(){s.value=String(get())}}}
 const SW=['#ffffff','#111111','#e63946','#ff7a00','#ffd60a','#8bd450','#2ec4b6','#2f6fe4','#1d3557','#7b2ff7','#ff5fa2','#8d99ae','#c0a062','#3a5a40','#b5651d'];
-function swatches(box,pick){for(const c of SW){const i=el('i');i.style.background=c;i.onclick=()=>pick(c);box.append(i)}}
+const MC_KEY='bike-color-sim:colors',swatchBoxes=[];
+let myColors=(()=>{try{const a=JSON.parse(localStorage.getItem(MC_KEY));return Array.isArray(a)?a:[]}catch(e){return[]}})();
+function saveMyColors(){try{localStorage.setItem(MC_KEY,JSON.stringify(myColors))}catch(e){}swatchBoxes.forEach(drawSwatches)}
+function swatches(box,pick,getCur){const sb={box,pick,getCur};swatchBoxes.push(sb);drawSwatches(sb)}
+function drawSwatches({box,pick,getCur}){box.innerHTML='';
+  for(const c of SW){const i=el('i');i.style.background=c;i.onclick=()=>pick(c);box.append(i)}
+  const hd=el('span','mycHead');hd.textContent=t('マイカラー')+(myColors.length?' — '+t('長押しで削除'):'');box.append(hd);
+  myColors.forEach((c,idx)=>{const i=el('i','mine');i.style.background=c;i.title=c;let timer=null,long=false;
+    i.addEventListener('pointerdown',()=>{long=false;timer=setTimeout(()=>{long=true;timer=null;if(confirm(t('マイカラーを削除しますか？')+' '+c)){myColors.splice(idx,1);saveMyColors()}},550)});
+    const cancel=()=>{if(timer){clearTimeout(timer);timer=null}};i.addEventListener('pointerup',cancel);i.addEventListener('pointerleave',cancel);
+    i.addEventListener('contextmenu',e=>e.preventDefault());i.onclick=()=>{if(!long)pick(c)};box.append(i)});
+  const add=el('i','addc');add.textContent='+';add.title=t('今の色をマイカラーに追加');
+  add.onclick=()=>{const c=getCur();if(!myColors.includes(c)){myColors.push(c);if(myColors.length>30)myColors.shift();saveMyColors()}toast(t('マイカラーに追加しました')+' '+c)};box.append(add)}
 
 // geometry tab
 const geoCtrls=[];
@@ -637,9 +661,10 @@ const gradCtrls=[];
   bindUndoable($('#pType'),()=>{curStyle().type=$('#pType').value;syncPart()});
   bindUndoable($('#pC1'),()=>curStyle().c1=$('#pC1').value);
   bindUndoable($('#pC2'),()=>curStyle().c2=$('#pC2').value);
-  bindUndoable($('#pRange'),()=>curStyle().range=$('#pRange').value);
-  swatches($('#pSw1'),c=>{pushUndo();curStyle().c1=c;syncPart();requestRender();autosave()});
-  swatches($('#pSw2'),c=>{pushUndo();curStyle().c2=c;syncPart();requestRender();autosave()});
+  bindUndoable($('#pRange'),()=>{curStyle().range=$('#pRange').value;syncPart()});
+  bindUndoable($('#pRev'),()=>curStyle().rev=$('#pRev').checked);
+  swatches($('#pSw1'),c=>{pushUndo();curStyle().c1=c;syncPart();requestRender();autosave()},()=>curStyle().c1);
+  swatches($('#pSw2'),c=>{pushUndo();curStyle().c2=c;syncPart();requestRender();autosave()},()=>curStyle().c2);
   const applyTo=pred=>{pushUndo();const src=curStyle();for(const id in S.styles)if(pred(PART_INFO[id][1])&&id!==curPart())S.styles[id]={...src,hidden:S.styles[id].hidden};requestRender();autosave();toast('適用しました')};
   $('#pApplyGroup').onclick=()=>{const g=PART_INFO[curPart()][1];applyTo(x=>x===g)};
   $('#pApplyFrame').onclick=()=>applyTo(x=>x==='frame'||x==='fork');
@@ -647,7 +672,8 @@ const gradCtrls=[];
 function syncPartList(){const s=$('#partSel');s.innerHTML='';
   for(const[g,gn]of GROUPS){const og=el('optgroup');og.label=t(gn);for(const id in PART_INFO)if(PART_INFO[id][1]===g){const o=el('option');o.value=id;o.textContent=pn(id)+(partMap[id]?'':t('（現在の設定では非表示）'));og.append(o)}s.append(og)}}
 function syncPart(){const id=curPart(),st=S.styles[id];$('#partSel').value=id;$('#pVis').checked=!st.hidden;$('#pType').value=st.type;
-  $('#pC1').value=st.c1;$('#pC2').value=st.c2;$('#pRange').value=st.range;$('#gradBox').style.display=st.type==='grad'?'':'none';gradCtrls.forEach(c=>c.sync())}
+  $('#pC1').value=st.c1;$('#pC2').value=st.c2;$('#pRange').value=st.range;$('#gradBox').style.display=st.type==='grad'?'':'none';gradCtrls.forEach(c=>c.sync());
+  const tube=st.range==='tube';gradCtrls[0].row.style.display=tube?'none':'';$('#pRevRow').style.display=tube?'':'none';$('#pRev').checked=!!st.rev}
 
 // brush tab
 const brushCtrls=[];
@@ -657,7 +683,7 @@ const brushCtrls=[];
   brushCtrls.push(rangeRow(box,'硬さ（100=くっきり）',0,100,1,'',()=>S.brush.hard,v=>S.brush.hard=v,false));
   $('#bColor').oninput=()=>{S.brush.color=$('#bColor').value;autosave()};
   $('#bAuto').onchange=()=>{S.brush.auto=$('#bAuto').checked;autosave()};
-  swatches($('#bSw'),c=>{S.brush.color=c;syncBrush();if(S.tool!=='fill'&&S.tool!=='brush')setTool('brush')})}
+  swatches($('#bSw'),c=>{S.brush.color=c;syncBrush();if(S.tool!=='fill'&&S.tool!=='brush')setTool('brush')},()=>S.brush.color)}
 function syncBrush(){$('#bColor').value=S.brush.color;$('#bAuto').checked=S.brush.auto;brushCtrls.forEach(c=>c.sync())}
 
 // image tab
