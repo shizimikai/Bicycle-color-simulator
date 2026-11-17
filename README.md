@@ -20,7 +20,7 @@
 - **パーツごとの塗装**：約30パーツを単色・グラデーション・ツートンで塗り分け。フレーム全体でつながるフェードや、チューブの向きに沿うフェードも可能。よく使う色は「マイカラー」に保存
 - **お絵かき**：ブラシ（太さ・不透明度・硬さ）、消しゴム、スポイト。描いた部分はパーツの形で自動的に切り抜き
 - **画像の貼り付け**：透過PNGを移動・拡大縮小・回転・反転して配置。パーツに貼り付けるとその形で切り抜き（デカールに便利）。画像の上にも描画可能
-- **寸法表示**：ホイールベース、フロントセンター、スタック／リーチ、トレール、スタンドオーバー、BBハイトなど約25項目を計算。チェックした寸法は寸法線つきで画面とPNGに表示
+- **寸法表示**：ホイールベース、フロントセンター、スタック／リーチ、トレール、スタンドオーバー、BBハイトなど約25項目を計算。チェックした寸法は寸法線つきで画面とPNGに表示。※数値は描画している形状から計算したおおよその値で、メーカーのジオメトリ表とは数mmずれることがあります
 - **保存と比較**：ブラウザ内に複数のデザインを保存し、最大3つを並べて比較。PNG書き出し（透過背景対応）、プロジェクトファイル（.json）の保存・読込
 - **日本語／英語**：ブラウザの言語で自動切替（🌐ボタンで変更可）
 
@@ -45,7 +45,7 @@ A bicycle paint-job simulator that runs entirely in your browser — no install,
 - **Per-part paint**: ~30 parts, solid / gradient / two-tone, with fades that flow across the whole frame or follow each tube; save favorite colors to “My colors”
 - **Freehand painting**: brush, eraser and eyedropper, automatically clipped to the part shape
 - **Decals**: place transparent PNGs, move/scale/rotate/flip them, clip them to a part, and paint on them
-- **Dimensions**: ~25 values including wheelbase, front center, stack/reach, trail, standover and BB height; checked ones are drawn as dimension lines on screen and in PNG exports
+- **Dimensions**: ~25 values including wheelbase, front center, stack/reach, trail, standover and BB height; checked ones are drawn as dimension lines on screen and in PNG exports. *Values are approximations calculated from the drawn geometry and may differ from manufacturers' geometry charts by a few mm.*
 - **Save & compare**: keep multiple designs in the browser and compare up to 3 side by side; export PNG (transparent background optional) or save/load a .json project
 - **Japanese / English** UI, chosen automatically from your browser language
 
