@@ -22,6 +22,7 @@
 - **画像の貼り付け**：透過PNGを移動・拡大縮小・回転・反転して配置。パーツに貼り付けるとその形で切り抜き（デカールに便利）。画像の上にも描画可能
 - **寸法表示**：ホイールベース、フロントセンター、スタック／リーチ、トレール、スタンドオーバー、BBハイトなど約25項目を計算。チェックした寸法は寸法線つきで画面とPNGに表示。※数値は描画している形状から計算したおおよその値で、メーカーのジオメトリ表とは数mmずれることがあります
 - **保存と比較**：ブラウザ内に複数のデザインを保存し、最大3つを並べて比較。PNG書き出し（透過背景対応）、プロジェクトファイル（.json）の保存・読込
+- **SNS共有**：📤ボタンから画像つきで共有（スマホはInstagram・Strava・LINEなどの共有メニュー、PCはX・Threads・Bluesky・Facebook・LINE・Redditの投稿画面）
 - **日本語／英語**：ブラウザの言語で自動切替（🌐ボタンで変更可）
 
 ## 使い方のコツ
@@ -47,6 +48,7 @@ A bicycle paint-job simulator that runs entirely in your browser — no install,
 - **Decals**: place transparent PNGs, move/scale/rotate/flip them, clip them to a part, and paint on them
 - **Dimensions**: ~25 values including wheelbase, front center, stack/reach, trail, standover and BB height; checked ones are drawn as dimension lines on screen and in PNG exports. *Values are approximations calculated from the drawn geometry and may differ from manufacturers' geometry charts by a few mm.*
 - **Save & compare**: keep multiple designs in the browser and compare up to 3 side by side; export PNG (transparent background optional) or save/load a .json project
+- **Share**: 📤 button shares the image via your phone's share sheet (Instagram, Strava, etc.) or opens X, Threads, Bluesky, Facebook, LINE or Reddit
 - **Japanese / English** UI, chosen automatically from your browser language
 
 Everything lives in a single `index.html` (no dependencies). Your data stays in your browser.
